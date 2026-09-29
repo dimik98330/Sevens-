@@ -170,12 +170,17 @@ describe('B-01 migrations and seed (INT-01)', () => {
   });
 
   it('seed fails closed without an explicit password', async () => {
+    // Hermetic: the fail-closed assertion must not depend on the ambient
+    // environment, so stash and restore DEMO_PASSWORD around the check.
+    const saved = process.env.DEMO_PASSWORD;
+    delete process.env.DEMO_PASSWORD;
     const fresh = await openDatabase();
     try {
       await migrate(fresh);
       await assert.rejects(seed(fresh), /DEMO_PASSWORD/);
     } finally {
       await fresh.close();
+      if (saved !== undefined) process.env.DEMO_PASSWORD = saved;
     }
   });
 
