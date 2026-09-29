@@ -79,6 +79,33 @@ export interface MockIdea {
 const now = () => new Date().toISOString();
 const reqId = () => `req_mock_${Math.random().toString(36).slice(2, 8)}`;
 
+// C-03: organizationId — мок-UUID вида org-<CODE>; маппинг код<->id только dev
+// (production: UUID из справочника B).
+const ORG_IDS: Record<string, string> = {
+  DEMO_TRANSPORT: "org-DEMO_TRANSPORT",
+  DEMO_UTILITIES: "org-DEMO_UTILITIES",
+  DEMO_ECOLOGY: "org-DEMO_ECOLOGY",
+  DEMO_SOCIAL: "org-DEMO_SOCIAL",
+  DEMO_SAFETY: "org-DEMO_SAFETY",
+  DEMO_TRIAGE: "org-DEMO_TRIAGE",
+};
+const CODE_BY_ORG_ID: Record<string, string> = Object.fromEntries(Object.entries(ORG_IDS).map(([k, v]) => [v, k]));
+
+const STAFF_USERS = [
+  { id: "u-staff-transport", displayName: "Демо-сотрудник: transport", email: "transport@example.test", organizationId: ORG_IDS.DEMO_TRANSPORT },
+  { id: "u-staff-triage", displayName: "Демо-сотрудник: triage", email: "triage@example.test", organizationId: ORG_IDS.DEMO_TRIAGE },
+];
+
+const TRANSITIONS: Record<string, string[]> = {
+  RECEIVED: ["UNDER_REVIEW"],
+  UNDER_REVIEW: ["NEEDS_INFO", "IN_PROGRESS", "REJECTED", "COMPLETED"],
+  NEEDS_INFO: ["UNDER_REVIEW"],
+  IN_PROGRESS: ["NEEDS_INFO", "COMPLETED", "REJECTED"],
+  COMPLETED: [],
+  REJECTED: [],
+};
+
+
 // Canned routing decisions дословно повторяют expectedRouting из
 // fixtures/demo-seed.json (проверено тестом c01 против движка D: R01).
 function seedIdeas(): MockIdea[] {
@@ -239,7 +266,7 @@ class Store {
   }
   users: MockUser[] = [
     { id: "u-citizen-1", displayName: "Демо-житель 1", email: "citizen1@example.test", role: "CITIZEN", organizationId: null },
-    { id: "u-staff-transport", displayName: "Демо-сотрудник: transport", email: "transport@example.test", role: "STAFF", organizationId: "DEMO_TRANSPORT" },
+    { id: "u-staff-transport", displayName: "Демо-сотрудник: transport", email: "transport@example.test", role: "STAFF", organizationId: ORG_IDS.DEMO_TRANSPORT as string },
     { id: "u-admin", displayName: "Демо-администратор", email: "admin@example.test", role: "ADMIN", organizationId: null },
   ];
 
@@ -308,12 +335,11 @@ class Store {
     if (!it) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
     if (!staff && this.meUser?.role === "CITIZEN" && it!.authorId !== this.meUser.id)
       fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
-    if (
-      staff &&
-      this.meUser?.role === "STAFF" &&
-      it!.organizationCode !== this.meUser.organizationId
-    )
-      fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (staff && this.meUser?.role === "STAFF") {
+      const myCode = CODE_BY_ORG_ID[this.meUser.organizationId ?? ""];
+      if (it!.organizationCode !== myCode)
+        fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    }
     return it!;
   }
 
@@ -471,6 +497,147 @@ class Store {
 
   key(): string {
     return newIdempotencyKey();
+  }
+
+
+  staffList(params: Record<string, string | undefined>) {
+    const me = this.needAuth();
+    if (me.role === "CITIZEN") fail(403, "FORBIDDEN", "Страница недоступна или у вас нет доступа к этой идее");
+    const myCode = CODE_BY_ORG_ID[me.organizationId ?? ""];
+    let list = this.ideas.filter((x) => x.status !== "DRAFT" && (me.role === "ADMIN" || x.organizationCode === myCode));
+    if (params.category) list = list.filter((x) => x.effectiveCategoryCode === params.category);
+    if (params.status) list = list.filter((x) => x.status === params.status);
+    if (params.q) {
+      const s = params.q.toLowerCase();
+      list = list.filter((x) => `${x.title} ${x.problem} ${x.solution} ${x.publicNumber ?? ""}`.toLowerCase().includes(s));
+    }
+    if (params.unassigned === "1") list = list.filter((x) => !x.assignee);
+    if (params.assignee) list = list.filter((x) => x.assignee?.id === params.assignee);
+    const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(params.pageSize ?? "20", 10) || 20));
+    const total = list.length;
+    list = list.slice((page - 1) * pageSize, page * pageSize);
+    return { data: list, meta: { requestId: reqId(), page, pageSize, total } };
+  }
+
+  staffGet(id: string) {
+    this.needAuth();
+    return { data: this.ideaOr404(id, true), meta: { requestId: reqId() } };
+  }
+
+  assignees() {
+    const me = this.needAuth();
+    const list = STAFF_USERS.filter((s) => me.role === "ADMIN" || s.organizationId === me.organizationId).map((s) => ({
+      id: s.id,
+      displayName: s.displayName,
+    }));
+    return { data: list, meta: { requestId: reqId() } };
+  }
+
+  adminOrganizations() {
+    const me = this.needAuth();
+    if (me.role !== "ADMIN") fail(403, "FORBIDDEN", "Страница недоступна или у вас нет доступа к этой идее");
+    return {
+      data: Object.entries(ORG_IDS).map(([code, oid]) => ({
+        id: oid,
+        code,
+        name: DEV_CATALOG.organizations.find((o) => o.code === code)?.name ?? code,
+      })),
+      meta: { requestId: reqId() },
+    };
+  }
+
+  assign(id: string, body: { assigneeId: string | null; expectedVersion: number }) {
+    const me = this.needAuth();
+    const it = this.ideaOr404(id, true);
+    if (body.expectedVersion !== it.version)
+      fail(409, "VERSION_CONFLICT", "Коллега уже изменил эту идею. Обновите карточку перед сохранением.");
+    if (body.assigneeId) {
+      const person = STAFF_USERS.find((s) => s.id === body.assigneeId);
+      const myCode = CODE_BY_ORG_ID[me.organizationId ?? ""];
+      const personCode = CODE_BY_ORG_ID[person?.organizationId ?? ""];
+      if (!person || personCode !== it.organizationCode || (me.role === "STAFF" && personCode !== myCode))
+        fail(400, "VALIDATION_ERROR", "Можно назначить только активного коллегу своей организации");
+      it.assignee = { id: person!.id, name: person!.displayName };
+    } else {
+      it.assignee = null;
+    }
+    it.version += 1;
+    it.updatedAt = now();
+    it.timeline.push({
+      id: `e-${Date.now()}`,
+      at: now(),
+      actor: me.displayName,
+      text: it.assignee ? `Ответственный: ${it.assignee.name}` : "Ответственный сброшен",
+    });
+    return { data: { id: it.id, version: it.version }, meta: { requestId: reqId() } };
+  }
+
+  changeStatus(id: string, body: Record<string, unknown>) {
+    const me = this.needAuth();
+    const it = this.ideaOr404(id, true);
+    if (body.expectedVersion !== it.version)
+      fail(409, "VERSION_CONFLICT", "Коллега уже изменил эту идею. Обновите карточку перед сохранением.");
+    const to = body.toStatus as string;
+    if (!(TRANSITIONS[it.status] ?? []).includes(to)) fail(409, "INVALID_TRANSITION", "Этот переход сейчас недоступен");
+    const comment = ((body.publicComment as string) ?? "").trim();
+    if (["NEEDS_INFO", "REJECTED", "COMPLETED"].includes(to) && comment.length < 20)
+      fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { publicComment: "Публичный комментарий — минимум 20 символов" });
+    if (to === "COMPLETED" && !body.resolutionType)
+      fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { resolutionType: "Выберите тип результата" });
+    let assignee = it.assignee;
+    if (body.takeOwnership) {
+      const mine = STAFF_USERS.find((s) => s.id === me.id) ?? { id: me.id, displayName: me.displayName };
+      assignee = { id: mine.id, name: mine.displayName };
+    }
+    if ((to === "UNDER_REVIEW" || to === "IN_PROGRESS") && !assignee)
+      fail(400, "VALIDATION_ERROR", "Сначала назначьте ответственного", { assigneeId: "Нужен ответственный" });
+    it.assignee = assignee;
+    if (comment)
+      it.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, body: comment, at: now() });
+    it.status = to as MockIdea["status"];
+    it.resolutionType = (body.resolutionType as string) ?? null;
+    it.version += 1;
+    it.updatedAt = now();
+    it.timeline.push({ id: `e-${Date.now()}`, at: now(), actor: me.displayName, text: `Статус: ${to}` });
+    return { data: { id: it.id, version: it.version, status: it.status }, meta: { requestId: reqId() } };
+  }
+
+  addComment(id: string, body: { visibility: "PUBLIC" | "INTERNAL"; body: string; expectedVersion: number }) {
+    const me = this.needAuth();
+    const it = this.ideaOr404(id, true);
+    if (body.expectedVersion !== it.version)
+      fail(409, "VERSION_CONFLICT", "Коллега уже изменил эту идею. Обновите карточку перед сохранением.");
+    if (!body.body.trim()) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { body: "Пустое сообщение" });
+    it.comments.push({ id: `c-${Date.now()}`, visibility: body.visibility, author: me.displayName, body: body.body.trim(), at: now() });
+    it.version += 1;
+    return { data: { id: it.id, version: it.version }, meta: { requestId: reqId() } };
+  }
+
+  reroute(id: string, body: { organizationId: string; effectiveCategoryCode?: string; reason: string; expectedVersion: number }) {
+    const me = this.needAuth();
+    if (me.role !== "ADMIN") fail(403, "FORBIDDEN", "Страница недоступна или у вас нет доступа к этой идее");
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (body.expectedVersion !== it!.version)
+      fail(409, "VERSION_CONFLICT", "Коллега уже изменил эту идею. Обновите карточку перед сохранением.");
+    if (!["RECEIVED", "UNDER_REVIEW", "NEEDS_INFO", "IN_PROGRESS"].includes(it!.status))
+      fail(409, "INVALID_TRANSITION", "Перенаправление из терминального статуса запрещено");
+    if ((body.reason ?? "").trim().length < 10 || (body.reason ?? "").length > 1000)
+      fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { reason: "Причина — 10–1000 символов" });
+    const code = CODE_BY_ORG_ID[body.organizationId];
+    if (!code) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { organizationId: "Организация только из справочника" });
+    it!.organizationCode = code;
+    if (body.effectiveCategoryCode) it!.effectiveCategoryCode = body.effectiveCategoryCode;
+    it!.assignee = null;
+    it!.version += 1;
+    it!.timeline.push({
+      id: `e-${Date.now()}`,
+      at: now(),
+      actor: me.displayName,
+      text: `Маршрут исправлен: ${code}. Причина: ${body.reason.trim()}`,
+    });
+    return { data: { id: it!.id, version: it!.version }, meta: { requestId: reqId() } };
   }
 }
 

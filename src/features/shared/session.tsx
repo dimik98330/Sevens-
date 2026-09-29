@@ -32,6 +32,11 @@ export function useSession(): SessionValue {
   return useContext(SessionContext);
 }
 
+// После входа житель идёт в свой кабинет, сотрудник/админ — в очередь (01 §5).
+export function postLoginPath(role: string): string {
+  return role === "CITIZEN" ? "/my" : "/staff";
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checked, setChecked] = useState(false);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiError } from "@/features/shared/api-client";
 import { store } from "@/features/shared/data";
-import { useSession } from "@/features/shared/session";
+import { postLoginPath, useSession } from "@/features/shared/session";
 import { ErrorNotice, InfoNotice } from "@/components/ui/Feedback";
 import { currentMockMode } from "@/features/shared/mock";
 
@@ -23,9 +23,9 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await store.login({ email: email.trim(), password });
+      const { data } = await store.login({ email: email.trim(), password });
       await refresh();
-      router.push("/my");
+      router.push(postLoginPath((data as { role?: string }).role ?? "CITIZEN"));
       router.refresh();
     } catch (err) {
       setError(err as ApiError);

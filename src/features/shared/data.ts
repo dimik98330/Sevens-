@@ -41,4 +41,30 @@ export const store = {
     useMock()
       ? Promise.resolve(mockStore.attach(id, { name: file.name, size: file.size, type: file.type }, expectedVersion))
       : api.upload(`/api/v1/ideas/${id}/attachments`, file, { expectedVersion: String(expectedVersion) }),
+  staffList: (params: Record<string, string>) => {
+    if (useMock()) return Promise.resolve(mockStore.staffList(params));
+    const s = new URLSearchParams({ scope: "staff", ...params });
+    return api.get(`/api/v1/ideas?${s}`);
+  },
+  staffGet: (id: string) =>
+    useMock() ? Promise.resolve(mockStore.staffGet(id)) : api.get(`/api/v1/ideas/${id}`),
+  assignees: (organizationId?: string) => {
+    if (useMock()) return Promise.resolve(mockStore.assignees());
+    const s = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : "";
+    return api.get(`/api/v1/staff/assignees${s}`);
+  },
+  adminOrganizations: () =>
+    useMock() ? Promise.resolve(mockStore.adminOrganizations()) : api.get("/api/v1/admin/organizations"),
+  assign: (id: string, body: { assigneeId: string | null; expectedVersion: number }, key: string) =>
+    useMock() ? Promise.resolve(mockStore.assign(id, body)) : api.post(`/api/v1/ideas/${id}/assignment`, body, { idempotencyKey: key }),
+  changeStatus: (id: string, body: Record<string, unknown>, key: string) =>
+    useMock() ? Promise.resolve(mockStore.changeStatus(id, body)) : api.post(`/api/v1/ideas/${id}/status`, body, { idempotencyKey: key }),
+  addComment: (id: string, body: { visibility: "PUBLIC" | "INTERNAL"; body: string; expectedVersion: number }, key: string) =>
+    useMock() ? Promise.resolve(mockStore.addComment(id, body)) : api.post(`/api/v1/ideas/${id}/comments`, body, { idempotencyKey: key }),
+  reroute: (
+    id: string,
+    body: { organizationId: string; effectiveCategoryCode?: string; reason: string; expectedVersion: number },
+    key: string,
+  ) =>
+    useMock() ? Promise.resolve(mockStore.reroute(id, body)) : api.post(`/api/v1/admin/ideas/${id}/reroute`, body, { idempotencyKey: key }),
 };

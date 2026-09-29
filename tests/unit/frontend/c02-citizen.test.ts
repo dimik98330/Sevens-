@@ -83,4 +83,11 @@ describe("preview vs D engine agreement (dev-only)", () => {
     const sent = selected === "AUTO" ? null : selected;
     expect(sent).toBeNull();
   });
+
+  it("post-login routes by role (citizen to cabinet, staff to queue)", async () => {
+    const { postLoginPath } = await import("@/features/shared/session");
+    expect(postLoginPath("CITIZEN")).toBe("/my");
+    expect(postLoginPath("STAFF")).toBe("/staff");
+    expect(postLoginPath("ADMIN")).toBe("/staff");
+  });
 });
