@@ -5,6 +5,7 @@
 // идут в same-origin /api/v1. Mock обходится полностью (03 §9).
 import { api, setCsrf } from "./api-client";
 import { currentMockMode, mockStore } from "./mock";
+import ru from "@/locales/ru.json";
 
 export function useMock(): boolean {
   return currentMockMode();
@@ -67,6 +68,72 @@ export function normalizeCatalogs(data: unknown): NormalizedCatalog {
   };
 }
 
+// Настоящий B не отдаёт тела комментариев на чтение (нет GET /comments;
+// POST /comments возвращает только id/version). История и публичный диалог
+// строятся по GET /ideas/:id/timeline: типы событий -> русские подписи,
+// тела реплик сервером не раскрываются (DTO-запрос к B).
+const STATUSES = ru.statuses as Record<string, string>;
+
+function eventText(e: { type?: string; fromStatus?: string | null; toStatus?: string | null }): string {
+  const s = (code?: string | null) => (code ? (STATUSES[code] ?? code) : "");
+  switch (e.type) {
+    case "STATUS_CHANGED":
+      return `Статус: ${s(e.fromStatus)} → ${s(e.toStatus)}`;
+    case "CLARIFICATION_REQUESTED":
+      return "Запрошен ответ жителя";
+    case "CLARIFICATION_ANSWERED":
+      return "Житель ответил на уточнение";
+    case "COMMENT_PUBLIC":
+      return "Публичный ответ специалиста";
+    case "COMMENT_INTERNAL":
+      return "Внутренняя заметка";
+    case "ASSIGNED":
+      return "Назначен ответственный";
+    case "UNASSIGNED":
+      return "Ответственный снят";
+    case "REROUTED":
+      return "Маршрут изменён";
+    case "SUBMITTED":
+    case "IDEA_REGISTERED":
+      return "Идея зарегистрирована на платформе";
+    case "CREATED":
+      return "Создан черновик";
+    case "ATTACHMENT_ADDED":
+      return "Прикреплён файл";
+    case "ATTACHMENT_REMOVED":
+      return "Файл удалён";
+    default:
+      return e.type ? `Событие: ${e.type}` : "Событие";
+  }
+}
+
+export interface TimelineRow {
+  id: string;
+  at: string;
+  actor?: string;
+  text: string;
+}
+
+export function mapTimeline(
+  items: unknown,
+  withActor: boolean,
+): TimelineRow[] {
+  const list = (Array.isArray(items) ? items : []) as Array<{
+    id?: string;
+    createdAt?: string;
+    actorId?: string;
+    type?: string;
+    fromStatus?: string | null;
+    toStatus?: string | null;
+  }>;
+  return list.map((e, i) => ({
+    id: String(e.id ?? `ev-${i}`),
+    at: String(e.createdAt ?? ""),
+    ...(withActor && e.actorId ? { actor: String(e.actorId).slice(0, 8) } : {}),
+    text: eventText(e),
+  }));
+}
+
 export const store = {
   catalogs: async () => {
     if (useMock()) return Promise.resolve(mockStore.catalogs());
@@ -100,8 +167,17 @@ export const store = {
     if (params.status) s.set("status", params.status);
     return api.get(`/api/v1/ideas?${s}`);
   },
-  get: (id: string) =>
-    useMock() ? Promise.resolve(mockStore.get(id, false)) : api.get(`/api/v1/ideas/${id}`),
+  get: async (id: string) => {
+    if (useMock()) return Promise.resolve(mockStore.get(id, false));
+    const [detail, tl] = await Promise.all([
+      api.get<Record<string, unknown>>(`/api/v1/ideas/${id}`),
+      api.get<unknown[]>(`/api/v1/ideas/${id}/timeline`),
+    ]);
+    return {
+      data: { ...detail.data, timeline: mapTimeline(tl.data, false), comments: [] },
+      meta: detail.meta,
+    };
+  },
   clarify: (id: string, body: { body: string; expectedVersion: number }, key: string) =>
     useMock()
       ? Promise.resolve(mockStore.clarify(id, body))
@@ -125,8 +201,17 @@ export const store = {
     useMock()
       ? Promise.resolve(mockStore.deleteAttachment(id, attachmentId, expectedVersion))
       : api.del(`/api/v1/ideas/${id}/attachments/${attachmentId}`, { expectedVersion }, { idempotencyKey: key }),
-  staffGet: (id: string) =>
-    useMock() ? Promise.resolve(mockStore.staffGet(id)) : api.get(`/api/v1/ideas/${id}`),
+  staffGet: async (id: string) => {
+    if (useMock()) return Promise.resolve(mockStore.staffGet(id));
+    const [detail, tl] = await Promise.all([
+      api.get<Record<string, unknown>>(`/api/v1/ideas/${id}`),
+      api.get<unknown[]>(`/api/v1/ideas/${id}/timeline`),
+    ]);
+    return {
+      data: { ...detail.data, timeline: mapTimeline(tl.data, true), comments: [] },
+      meta: detail.meta,
+    };
+  },
   assignees: (organizationId?: string) => {
     if (useMock()) return Promise.resolve(mockStore.assignees());
     const s = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : "";

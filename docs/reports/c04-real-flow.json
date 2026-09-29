@@ -1,7 +1,7 @@
 {
   "base": "http://localhost:18081",
-  "ideaId": "4f07976a-b58f-462e-ac05-99c510706450",
-  "publicNumber": "ABAI-2026-000002",
+  "ideaId": "823f8c85-860c-4b2a-9786-8af641e00a3b",
+  "publicNumber": "ABAI-2026-000006",
   "evidence": [
     {
       "step": "register citizen",
@@ -41,7 +41,7 @@
     {
       "step": "submit",
       "ok": true,
-      "detail": "http=200 pub=ABAI-2026-000002 cat=OTHER"
+      "detail": "http=200 pub=ABAI-2026-000006 cat=OTHER"
     },
     {
       "step": "mine lists idea",
@@ -65,28 +65,28 @@
     },
     {
       "step": "assign",
-      "ok": false,
-      "detail": "http=503 v=6"
+      "ok": true,
+      "detail": "http=200 v=7"
     },
     {
       "step": "status UNDER_REVIEW",
-      "ok": false,
-      "detail": "http=400 v=6"
+      "ok": true,
+      "detail": "http=200 v=8"
     },
     {
-      "step": "public comment",
-      "ok": false,
+      "step": "public comment 201",
+      "ok": true,
       "detail": "http=201"
     },
     {
       "step": "status NEEDS_INFO",
-      "ok": false,
-      "detail": "http=409 v=6"
+      "ok": true,
+      "detail": "http=200 v=10"
     },
     {
       "step": "citizen notified",
       "ok": true,
-      "detail": "n=2 kind=PUBLIC_REPLY"
+      "detail": "n=4 kind=CLARIFICATION_REQUESTED"
     },
     {
       "step": "notification read 204",
@@ -95,8 +95,8 @@
     },
     {
       "step": "clarification",
-      "ok": false,
-      "detail": "http=409"
+      "ok": true,
+      "detail": "http=200"
     },
     {
       "step": "reroute by org UUID",
@@ -106,7 +106,7 @@
     {
       "step": "reroute reset assignee",
       "ok": true,
-      "detail": "assignee=null"
+      "detail": "assignee=null org=DEMO_ECOLOGY"
     },
     {
       "step": "stale version 409",

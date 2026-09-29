@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeAuthResponse, normalizeCatalogs, resolveTerritoryId, store } from "@/features/shared/data";
+import { mapTimeline, normalizeAuthResponse, normalizeCatalogs, resolveTerritoryId, store } from "@/features/shared/data";
 
 // C-04: клиент шлёт настоящий B те же идентификаторы, что B отдаёт в каталогах.
 // d37aeab: GET /api/v1/catalogs territories несут id UUID; territoryId черновика —
@@ -53,6 +53,33 @@ describe("C-04 real-mode identifiers", () => {
     });
     expect(flat.role).toBe("CITIZEN");
     expect(flat.organizationId).toBeNull();
+  });
+
+  it("timeline maps real event types to Russian rows", () => {
+    const rows = mapTimeline(
+      [
+        { id: "e1", createdAt: "2026-09-29T10:00:00Z", actorId: "6cb6167b-f8d1-5b56-90ff-7c9c12a13a3c", type: "STATUS_CHANGED", fromStatus: "RECEIVED", toStatus: "UNDER_REVIEW", visibility: "PUBLIC", commentId: null, payload: {} },
+        { id: "e2", createdAt: "2026-09-29T11:00:00Z", actorId: "6cb6167b-f8d1-5b56-90ff-7c9c12a13a3c", type: "COMMENT_PUBLIC", visibility: "PUBLIC", commentId: "c1", payload: {} },
+      ],
+      true,
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.text).toContain("На рассмотрении");
+    expect(rows[1]?.text).toBe("Публичный ответ специалиста");
+    expect(rows[0]?.actor).toBe("6cb6167b");
+    const citizen = mapTimeline([{ id: "e1", type: "STATUS_CHANGED", fromStatus: "RECEIVED", toStatus: "NEEDS_INFO" }], false);
+    expect(citizen[0]?.actor).toBeUndefined();
+    expect(citizen[0]?.text).toContain("ужны уточнения");
+    const sys = mapTimeline(
+      [{ id: "a", type: "CREATED" }, { id: "b", type: "ATTACHMENT_ADDED" }, { id: "c", type: "SUBMITTED" }, { id: "d", type: "REROUTED" }],
+      false,
+    );
+    expect(sys.map((r) => r.text)).toEqual([
+      "Создан черновик",
+      "Прикреплён файл",
+      "Идея зарегистрирована на платформе",
+      "Маршрут изменён",
+    ]);
   });
 
   it("staff queue maps UI unassigned=1 to the real assignee=unassigned sentinel", async () => {
