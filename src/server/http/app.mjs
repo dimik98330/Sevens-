@@ -17,12 +17,43 @@ import { createDraft, updateDraft, submitIdea } from '../ideas/service.mjs';
 import {
   uploadAttachment, deleteAttachment, downloadAttachment, readMultipart,
 } from '../attachments/store.mjs';
+import { loadIdeaForActor, requireStaff } from '../policies/scopes.mjs';
 import {
-  loadIdeaForActor, citizenIdeaView, staffIdeaView, requireStaff,
-} from '../policies/scopes.mjs';
+  assignIdea, changeStatus, addComment, rerouteIdea, answerClarification,
+  listStaffQueue, listAssignees, listOrganizations,
+  listNotifications, readNotification,
+} from '../workflow/service.mjs';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
+
+// Contract 03 section 1: JSON uses camelCase, DB uses snake_case.
+function camelIdea(idea) {
+  return {
+    id: idea.id,
+    regionId: idea.region_id,
+    publicNumber: idea.public_number,
+    title: idea.title,
+    problem: idea.problem,
+    solution: idea.solution,
+    expectedBenefit: idea.expected_benefit,
+    requestedCategoryCode: idea.requested_category_code,
+    effectiveCategoryCode: idea.effective_category_code,
+    territoryId: idea.territory_id,
+    locationText: idea.location_text,
+    status: idea.status,
+    organizationId: idea.organization_id,
+    assigneeId: idea.assignee_id,
+    version: idea.version,
+    contentRevision: idea.content_revision,
+    submittedAt: idea.submitted_at,
+    createdAt: idea.created_at,
+    updatedAt: idea.updated_at,
+    resolutionType: idea.resolution_type,
+    consentVersion: idea.consent_version,
+    consentAt: idea.consent_at,
+  };
+}
 
 async function ideaDetail(db, actor, idea) {
   const att = await db.query(
@@ -43,12 +74,15 @@ async function ideaDetail(db, actor, idea) {
     const a = await db.query('SELECT display_name FROM users WHERE id=$1', [idea.assignee_id]);
     assigneeDisplayName = a.rows[0]?.display_name || null;
   }
+  const base = camelIdea(idea);
   if (actor.role === 'CITIZEN') {
+    const { organizationId, assigneeId, ...rest } = base;
+    void organizationId;
+    void assigneeId;
     return {
-      ...citizenIdeaView(idea, {
-        assigneeDisplayName,
-        organizationCode: route.rows[0]?.organizationCode || null,
-      }),
+      ...rest,
+      assigneeDisplayName,
+      organizationCode: route.rows[0]?.organizationCode || null,
       attachments: att.rows,
       routing: route.rows[0] || null,
     };
@@ -56,11 +90,10 @@ async function ideaDetail(db, actor, idea) {
   const author = await db.query(
     'SELECT display_name, email_normalized FROM users WHERE id=$1', [idea.author_id]);
   return {
-    ...staffIdeaView(idea, {
-      authorDisplayName: author.rows[0]?.display_name || null,
-      authorEmail: author.rows[0]?.email_normalized || null,
-      assigneeDisplayName,
-    }),
+    ...base,
+    authorDisplayName: author.rows[0]?.display_name || null,
+    authorEmail: author.rows[0]?.email_normalized || null,
+    assigneeDisplayName,
     attachments: att.rows,
     routing: route.rows[0] || null,
   };
@@ -369,6 +402,61 @@ export function createHandler(db, config = appConfig()) {
             body?.expectedVersion, idempotencyKey, requestId, config.uploadDir);
           return sendJson(res, result.status, successBody(result.body, requestId));
         }
+        if (suffix === '/assignment' && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const result = await assignIdea(db, actor, ideaId, body || {}, idempotencyKey, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        if (suffix === '/status' && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const result = await changeStatus(db, actor, ideaId, body || {}, idempotencyKey, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        if (suffix === '/comments' && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const result = await addComment(db, actor, ideaId, body || {}, idempotencyKey, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        if (suffix === '/clarifications' && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const result = await answerClarification(db, actor, ideaId, body || {}, idempotencyKey, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+      }
+
+      const rerouteMatch = /^\/api\/v1\/admin\/ideas\/([0-9a-f-]{36})\/reroute$/.exec(url.pathname);
+      if (rerouteMatch && req.method === 'POST') {
+        if (!actor) {
+          const err = new Error('Требуется вход');
+          err.code = 'UNAUTHENTICATED';
+          throw err;
+        }
+        const body = await readJsonBody(req);
+        const result = await rerouteIdea(db, actor, rerouteMatch[1], body || {}, idempotencyKey, requestId);
+        return sendJson(res, result.status, successBody(result.body, requestId));
+      }
+
+      if (url.pathname === '/api/v1/staff/assignees' && req.method === 'GET') {
+        const items = await listAssignees(db, actor, url.searchParams.get('organizationId'));
+        return sendJson(res, 200, successBody(items, requestId));
+      }
+      if (url.pathname === '/api/v1/admin/organizations' && req.method === 'GET') {
+        const items = await listOrganizations(db, actor);
+        return sendJson(res, 200, successBody(items, requestId));
+      }
+      if (url.pathname === '/api/v1/notifications' && req.method === 'GET') {
+        const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+        const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 20));
+        const { items, total } = await listNotifications(db, actor, {
+          unreadOnly: url.searchParams.get('unreadOnly') === 'true', page, pageSize,
+        });
+        return sendJson(res, 200, listBody(items, page, pageSize, total, requestId));
+      }
+      const notifMatch = /^\/api\/v1\/notifications\/([0-9a-f-]{36})\/read$/.exec(url.pathname);
+      if (notifMatch && req.method === 'POST') {
+        await readNotification(db, actor, notifMatch[1]);
+        res.writeHead(204);
+        return res.end();
       }
 
       if (url.pathname === '/api/v1/ideas' && req.method === 'GET') {
@@ -406,9 +494,22 @@ export function createHandler(db, config = appConfig()) {
         }
         if (scope === 'staff' || scope === 'admin') {
           requireStaff(actor);
-          const err = new Error('Очередь сотрудника — в B-04');
-          err.code = 'NOT_FOUND';
-          throw err;
+          const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+          const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 20));
+          const { items, total } = await listStaffQueue(db, actor, {
+            organizationId: url.searchParams.get('organizationId'),
+            q: url.searchParams.get('q') || '',
+            category: url.searchParams.get('category') || '',
+            territory: url.searchParams.get('territory') || '',
+            status: url.searchParams.get('status') || '',
+            assignee: url.searchParams.get('assignee') || '',
+            dateFrom: url.searchParams.get('dateFrom') || '',
+            dateTo: url.searchParams.get('dateTo') || '',
+            sort: url.searchParams.get('sort') || '',
+            dir: url.searchParams.get('dir') || '',
+            page, pageSize,
+          });
+          return sendJson(res, 200, listBody(items, page, pageSize, total, requestId));
         }
         const err = new Error('Нет доступа');
         err.code = 'FORBIDDEN';
