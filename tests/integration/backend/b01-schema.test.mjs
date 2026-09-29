@@ -1,11 +1,12 @@
 // B-01 integration tests: migrations, catalogs, seed idempotency, SQL guards.
-// Runs against PGlite (a real PostgreSQL engine). INT-01 coverage.
+// Runs against PGlite or real PostgreSQL (DATABASE_URL). INT-01 coverage.
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDatabase } from '../../../src/server/db/client.mjs';
+import { resetDb } from './helpers/resetDb.mjs';
 import { migrate } from '../../../scripts/migrate.mjs';
 import { seed, uuidFromSeedKey } from '../../../scripts/seed.mjs';
 import { CATEGORY_CODES } from '../../../src/contracts/enums.mjs';
@@ -19,6 +20,7 @@ let ids = {};
 
 before(async () => {
   db = await openDatabase();
+  await resetDb(db);
   await migrate(db);
   const first = await seed(db, { demoPassword: 'test-Seed-12-chars' });
   ids = { regionId: first.regionId };

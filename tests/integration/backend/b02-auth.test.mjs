@@ -3,6 +3,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDatabase } from '../../../src/server/db/client.mjs';
+import { resetDb } from './helpers/resetDb.mjs';
 import { migrate } from '../../../scripts/migrate.mjs';
 import { seed, uuidFromSeedKey } from '../../../scripts/seed.mjs';
 import { createServer } from '../../../src/server/http/app.mjs';
@@ -43,6 +44,7 @@ async function registerUser(suffix, extra = {}) {
 
 before(async () => {
   db = await openDatabase();
+  await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: 'test-Seed-12-chars' });
   server = createServer(db);

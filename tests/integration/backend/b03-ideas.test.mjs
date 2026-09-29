@@ -7,6 +7,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { openDatabase } from '../../../src/server/db/client.mjs';
+import { resetDb } from './helpers/resetDb.mjs';
 import { migrate } from '../../../scripts/migrate.mjs';
 import { seed } from '../../../scripts/seed.mjs';
 import { createServer } from '../../../src/server/http/app.mjs';
@@ -87,6 +88,7 @@ before(async () => {
   uploadDir = mkdtempSync(path.join(tmpdir(), 'uploads-'));
   process.env.UPLOAD_DIR = uploadDir;
   db = await openDatabase();
+  await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: 'test-Seed-12-chars' });
   territoryId = (await db.query(`SELECT id FROM territories WHERE code='DEMO_SEMEY'`)).rows[0].id;

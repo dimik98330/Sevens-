@@ -11,6 +11,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { openDatabase } from '../../../src/server/db/client.mjs';
+import { resetDb } from './helpers/resetDb.mjs';
 import { migrate } from '../../../scripts/migrate.mjs';
 import { seed } from '../../../scripts/seed.mjs';
 import { createServer } from '../../../src/server/http/app.mjs';
@@ -120,6 +121,7 @@ async function expectGuardCode(res, label, status, code) {
 
 before(async () => {
   db = await openDatabase();
+  await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: SEED_PASSWORD });
   territoryId = (await db.query(`SELECT id FROM territories WHERE code='DEMO_SEMEY'`)).rows[0].id;
