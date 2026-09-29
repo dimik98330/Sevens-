@@ -1,0 +1,30 @@
+# Credentials / private local data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.sqlite
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+storage/
+uploads/
+backups/
+*.dump
+# Build / dependencies / local test outputs
+node_modules/
+.next/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+__pycache__/
+*.pyc
+*.log
+# Native coding-agent worktrees; do not hide all agent configuration indiscriminately
+.muse/worktrees/
+.DS_Store
+
+.data/
