@@ -1,0 +1,100 @@
+{
+ "base": "http://127.0.0.1:3000 (exact origin, single-origin stand)",
+ "browser": "RUN by D in headless Chrome 154 (raw CDP, background): citizen login -> /my -> idea card (reply text rendered, no INTERNAL leak, screenshots), staff d-reviewer login -> /staff queue (idea row rendered, screenshot), 390px card render. No visible window was used; screenshots eye-verified by D.",
+ "db": "Compose PG17 (stand-owned; non-destructive: only d03-*/d03s-*/d03b-*/dbg-* users and ideas, no reset/migrate/seed by D)",
+ "evidence": [
+  {
+   "detail": "pub=ABAI-2026-000005 org=DEMO_TRANSPORT",
+   "ok": true,
+   "step": "citizen register/draft+PNG/submit/route"
+  },
+  {
+   "detail": "3 ideas, mine>=3",
+   "ok": true,
+   "step": "mine lists ideas"
+  },
+  {
+   "detail": "401/403/404/409/413/415",
+   "ok": true,
+   "step": "negatives citizen-reachable"
+  },
+  {
+   "detail": "PUBLIC-only rows",
+   "ok": true,
+   "step": "citizen timeline + notifications readable"
+  },
+  {
+   "detail": "d-reviewer STAFF TRANSPORT (local cred file, never journaled)",
+   "ok": true,
+   "step": "temp staff login"
+  },
+  {
+   "detail": "assignee set + UNDER_REVIEW",
+   "ok": true,
+   "step": "Flow A assign/status"
+  },
+  {
+   "detail": "201/201",
+   "ok": true,
+   "step": "PUBLIC + INTERNAL comments"
+  },
+  {
+   "detail": "200, back UNDER_REVIEW, then IN_PROGRESS",
+   "ok": true,
+   "step": "Flow B NEEDS_INFO + citizen answer"
+  },
+  {
+   "detail": "ANSWER_PROVIDED",
+   "ok": true,
+   "step": "COMPLETED terminal"
+  },
+  {
+   "detail": "200",
+   "ok": true,
+   "step": "REJECTED terminal"
+  },
+  {
+   "detail": "verbatim match after citizen relogin (API) + rendered card (browser)",
+   "ok": true,
+   "step": "PUBLIC text to resident"
+  },
+  {
+   "detail": "no COMMENT_INTERNAL rows/bodies (API) and no leak in render (browser)",
+   "ok": true,
+   "step": "INTERNAL hidden"
+  },
+  {
+   "detail": "n=13 incl PUBLIC_REPLY",
+   "ok": true,
+   "step": "notifications"
+  },
+  {
+   "detail": "COMPLETED visible",
+   "ok": true,
+   "step": "terminal state to author"
+  },
+  {
+   "detail": "ABAI-2026-000019 card/dialog/390 + staff queue, eye-verified",
+   "ok": true,
+   "step": "browser screenshots d03-browser-*"
+  },
+  {
+   "step": "admin-reroute on PG17 (d-admin, local cred only)",
+   "ok": true,
+   "detail": "ABAI-2026-000009 IN_PROGRESS TRANSPORT -> 200 SAFETY/SAFETY, number kept, assignee null, REROUTED present; COMPLETED reroute -> 409"
+  },
+  {
+   "step": "404 non-repro note",
+   "ok": true,
+   "detail": "single GET 404 earlier did not reproduce (detail 200 after); row present in live list; no defect claimed"
+  }
+ ],
+ "screenshots": [
+  "docs/reports/screenshots/d03-browser-citizen-card-1366.png",
+  "docs/reports/screenshots/d03-browser-citizen-dialog-1366.png",
+  "docs/reports/screenshots/d03-browser-citizen-card-390.png",
+  "docs/reports/screenshots/d03-browser-staff-queue-1366.png"
+ ],
+ "stand": "A-02 integrated (reviewed 0546bf5, D PASS), healthy PG17",
+ "status": "Flow A/B FULLY GREEN on live PG17 incl. genuine browser render + admin-reroute; ready for review"
+}
