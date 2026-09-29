@@ -82,12 +82,12 @@ describe("C-04 real-mode identifiers", () => {
     ]);
   });
 
-  it("thread carries commentBody from timeline events (A msg 133 shape)", () => {
+  it("thread carries body from timeline events (B 49d2427 shape)", () => {
     const thread = threadFromTimeline(
       [
-        { id: "e1", createdAt: "2026-09-29T10:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_PUBLIC", visibility: "PUBLIC", commentBody: "Принято в работу." },
-        { id: "e2", createdAt: "2026-09-29T11:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_INTERNAL", visibility: "INTERNAL", commentBody: "Для коллег." },
-        { id: "e3", createdAt: "2026-09-29T12:00:00Z", actorId: "staff-uuid-1", type: "STATUS_CHANGED", visibility: "PUBLIC", fromStatus: "RECEIVED", toStatus: "UNDER_REVIEW", commentBody: null },
+        { id: "e1", createdAt: "2026-09-29T10:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_PUBLIC", visibility: "PUBLIC", body: "Принято в работу." },
+        { id: "e2", createdAt: "2026-09-29T11:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_INTERNAL", visibility: "INTERNAL", body: "Для коллег." },
+        { id: "e3", createdAt: "2026-09-29T12:00:00Z", actorId: "staff-uuid-1", type: "STATUS_CHANGED", visibility: "PUBLIC", fromStatus: "RECEIVED", toStatus: "UNDER_REVIEW", body: null },
       ],
       true,
     );

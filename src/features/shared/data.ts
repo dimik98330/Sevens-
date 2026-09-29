@@ -132,7 +132,9 @@ interface RawEvent {
   visibility?: string;
   fromStatus?: string | null;
   toStatus?: string | null;
-  commentBody?: string | null;
+  // B 49d2427: тело linked-комментария в событии timeline (gated: гражданин —
+  // только PUBLIC, сотрудник — все). Поле называется body.
+  body?: string | null;
 }
 
 export function mapTimeline(
@@ -145,14 +147,15 @@ export function mapTimeline(
     at: String(e.createdAt ?? ""),
     ...(withActor && e.actorId ? { actor: String(e.actorId).slice(0, 8) } : {}),
     text: eventText(e),
-    ...(typeof e.commentBody === "string" && e.commentBody ? { body: e.commentBody } : {}),
+    ...(typeof e.body === "string" && e.body ? { body: e.body } : {}),
     ...(typeof e.visibility === "string" ? { visibility: e.visibility } : {}),
   }));
 }
 
-// Тела реплик (A DECISION msg 133): B раскрывает commentBody в событии
-// timeline (гражданину — только PUBLIC, сотруднику — все). Фасад сводит их
-// к форме comments[], которую уже рендерят обе деталки.
+// Тела реплик (A DECISION msg 133, B 49d2427: поле body): B раскрывает тело
+// linked-комментария в событии timeline (гражданину — только PUBLIC,
+// сотруднику — все). Фасад сводит их к форме comments[], которую уже
+// рендерят обе деталки.
 export function threadFromTimeline(items: unknown, withActor: boolean): ThreadComment[] {
   return mapTimeline(items, withActor)
     .filter((r) => typeof r.body === "string" && r.body.length > 0)
