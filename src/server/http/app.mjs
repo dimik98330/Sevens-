@@ -317,8 +317,14 @@ export function createHandler(db, config = appConfig()) {
           organizationId: s.organization_id, regionId: s.region_id,
         };
       });
+      // Every /api/v1 route except register/login/catalogs (handled above)
+      // requires a session; every mutation under it requires Origin+CSRF.
+      // login/register enforce Origin inline (no session exists yet).
       const needAuth = url.pathname.startsWith('/api/v1/ideas')
-        || url.pathname.startsWith('/api/v1/attachments/');
+        || url.pathname.startsWith('/api/v1/attachments/')
+        || url.pathname.startsWith('/api/v1/notifications')
+        || url.pathname.startsWith('/api/v1/staff/')
+        || url.pathname.startsWith('/api/v1/admin/');
       if (needAuth && !actor) {
         const err = new Error('Требуется вход');
         err.code = 'UNAUTHENTICATED';
