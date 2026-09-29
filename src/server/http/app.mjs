@@ -374,14 +374,22 @@ export function createHandler(db, config = appConfig()) {
         if (suffix === '/timeline' && req.method === 'GET') {
           const idea = await loadIdeaForActor(db, actor, ideaId);
           const staffView = actor.role !== 'CITIZEN';
+          // Comment text travels with the event, gated server-side: staff sees
+          // every linked body; the author sees bodies of PUBLIC events only.
+          // INTERNAL events never reach citizens (filtered below), and the CASE
+          // additionally requires the linked comment row itself to be PUBLIC.
           const events = await db.query(
-            `SELECT id, type, actor_id AS "actorId", visibility,
-                    from_status AS "fromStatus", to_status AS "toStatus",
-                    comment_id AS "commentId", payload_json AS payload, created_at AS "createdAt"
-             FROM idea_events WHERE idea_id=$1
-             ${staffView ? '' : `AND visibility='PUBLIC'`}
-             ORDER BY created_at, id`,
-            [idea.id]);
+            `SELECT e.id, e.type, e.actor_id AS "actorId", e.visibility,
+                    e.from_status AS "fromStatus", e.to_status AS "toStatus",
+                    e.comment_id AS "commentId", e.payload_json AS payload,
+                    e.created_at AS "createdAt",
+                    CASE WHEN $2 OR (e.visibility = 'PUBLIC' AND c.visibility = 'PUBLIC')
+                      THEN c.body ELSE NULL END AS body
+             FROM idea_events e LEFT JOIN comments c ON c.id = e.comment_id
+             WHERE e.idea_id = $1
+             ${staffView ? '' : `AND e.visibility='PUBLIC'`}
+             ORDER BY e.created_at, e.id`,
+            [idea.id, staffView]);
           return sendJson(res, 200, successBody(events.rows, requestId));
         }
         if (suffix === '/attachments' && req.method === 'POST') {

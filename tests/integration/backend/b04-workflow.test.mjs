@@ -213,6 +213,45 @@ describe('B-04 full cycle (E2E-01 spine)', () => {
     assert.equal((await reply.json()).data.status, 'UNDER_REVIEW');
   });
 
+  it('timeline carries PUBLIC comment bodies to author, INTERNAL stays staff-only', async () => {
+    const author = await registerCitizen('commenttext');
+    const idea = await submitFreshIdea(author);
+    const staff = await loginAs('transport@example.test');
+    const take = await req('POST', `/api/v1/ideas/${idea.id}/status`, {
+      ...staff, key: randomUUID(),
+      body: { toStatus: 'UNDER_REVIEW', takeOwnership: true, expectedVersion: idea.version },
+    });
+    assert.equal(take.status, 200);
+    const PUBLIC_TEXT = 'Публичный ответ: светофоры включены в план следующего квартала.';
+    const INTERNAL_TEXT = 'Внутренняя пометка для коллег по смене.';
+    const pub = await req('POST', `/api/v1/ideas/${idea.id}/comments`, {
+      ...staff, key: randomUUID(),
+      body: { visibility: 'PUBLIC', body: PUBLIC_TEXT, expectedVersion: (await take.json()).data.version },
+    });
+    assert.equal(pub.status, 201);
+    const intr = await req('POST', `/api/v1/ideas/${idea.id}/comments`, {
+      ...staff, key: randomUUID(),
+      body: { visibility: 'INTERNAL', body: INTERNAL_TEXT, expectedVersion: (await pub.json()).data.ideaVersion },
+    });
+    assert.equal(intr.status, 201);
+    // Author: PUBLIC event carries the text; INTERNAL events are absent entirely.
+    const ctl = await req('GET', `/api/v1/ideas/${idea.id}/timeline`, author);
+    assert.equal(ctl.status, 200);
+    const crows = (await ctl.json()).data;
+    const cpub = crows.find((e) => e.type === 'COMMENT_PUBLIC');
+    assert.ok(cpub);
+    assert.equal(cpub.body, PUBLIC_TEXT);
+    assert.ok(!crows.some((e) => e.type === 'COMMENT_INTERNAL'));
+    assert.ok(!crows.some((e) => e.body === INTERNAL_TEXT));
+    // Owning staff: INTERNAL event present with its text.
+    const stl = await req('GET', `/api/v1/ideas/${idea.id}/timeline`, staff);
+    assert.equal(stl.status, 200);
+    const srows = (await stl.json()).data;
+    const sint = srows.find((e) => e.type === 'COMMENT_INTERNAL');
+    assert.ok(sint);
+    assert.equal(sint.body, INTERNAL_TEXT);
+  });
+
   it('cross-org assignment is rejected; data unchanged (INT-10)', async () => {
     const author = await registerCitizen('assignx');
     const idea = await submitFreshIdea(author);
