@@ -8,6 +8,7 @@
 import type { CatalogSnapshot, RoutingDecision } from "@/domain/routing/types";
 import type { IdeaStatus } from "@/contracts";
 import { newIdempotencyKey } from "./api-client";
+import { previewRoute } from "./route-preview";
 
 export function defaultMockMode(): boolean {
   return (process.env.NEXT_PUBLIC_ABAI_MOCK ?? "1") !== "0";
@@ -57,9 +58,11 @@ export interface MockIdea {
   title: string;
   problem: string;
   solution: string;
+  expectedBenefit: string;
   requestedCategoryCode: string | null;
   effectiveCategoryCode: string | null;
   territoryCode: string | null;
+  locationText: string;
   status: IdeaStatus;
   organizationCode: string | null;
   assignee: { id: string; name: string } | null;
@@ -68,6 +71,7 @@ export interface MockIdea {
   updatedAt: string;
   resolutionType: string | null;
   routing: RoutingDecision | null;
+  attachments: Array<{ id: string; name: string; size: number; mime: string }>;
   timeline: Array<{ id: string; at: string; actor: string; text: string }>;
   comments: Array<{ id: string; visibility: "PUBLIC" | "INTERNAL"; author: string; body: string; at: string }>;
 }
@@ -89,9 +93,11 @@ function seedIdeas(): MockIdea[] {
     title: o.title,
     problem: o.problem,
     solution: o.solution,
+    expectedBenefit: "",
     requestedCategoryCode: null,
     effectiveCategoryCode: o.routing.effectiveCategoryCode,
     territoryCode: "DEMO_SEMEY",
+    locationText: "",
     status: o.status,
     organizationCode: o.routing.organizationCode,
     assignee: o.status === "RECEIVED" ? null : { id: "u-staff-triage", name: "Демо-сотрудник" },
@@ -100,6 +106,7 @@ function seedIdeas(): MockIdea[] {
     updatedAt: now(),
     resolutionType: o.res ?? null,
     routing: o.routing,
+    attachments: [],
     timeline: [{ id: `e-${o.id}`, at: now(), actor: "Демо-житель 1", text: "Идея зарегистрирована на платформе." }],
     comments: o.comment
       ? [{ id: `c-${o.id}`, visibility: "PUBLIC", author: "Демо-сотрудник", body: o.comment, at: now() }]
@@ -203,9 +210,33 @@ export class ApiMockError extends Error {
   }
 }
 
+const MOCK_USER_KEY = "abai.mockUser";
+
 class Store {
   meUser: MockUser | null = null;
   ideas: MockIdea[] = seedIdeas();
+  nextNumber = 124;
+
+  private persist(): void {
+    if (typeof window === "undefined") return;
+    // DEV-ONLY: демо-сессия переживает навигацию. Только синтетические
+    // seed-личности; настоящий backend использует httpOnly-cookie (B).
+    if (this.meUser) sessionStorage.setItem(MOCK_USER_KEY, JSON.stringify(this.meUser));
+    else sessionStorage.removeItem(MOCK_USER_KEY);
+  }
+
+  private restore(): void {
+    if (typeof window === "undefined" || this.meUser) return;
+    try {
+      const raw = sessionStorage.getItem(MOCK_USER_KEY);
+      if (raw) {
+        const u = JSON.parse(raw) as MockUser;
+        if (u && typeof u.email === "string") this.meUser = u;
+      }
+    } catch {
+      // битый ключ игнорируем
+    }
+  }
   users: MockUser[] = [
     { id: "u-citizen-1", displayName: "Демо-житель 1", email: "citizen1@example.test", role: "CITIZEN", organizationId: null },
     { id: "u-staff-transport", displayName: "Демо-сотрудник: transport", email: "transport@example.test", role: "STAFF", organizationId: "DEMO_TRANSPORT" },
@@ -213,6 +244,7 @@ class Store {
   ];
 
   me(): MockUser | null {
+    this.restore();
     return this.meUser;
   }
 
@@ -236,6 +268,7 @@ class Store {
     const u = this.users.find((x) => x.email === email);
     if (!u || (body.password ?? "").length < 1) fail(401, "UNAUTHENTICATED", "Неверный email или пароль");
     this.meUser = u!;
+    this.persist();
     return { data: { ...u, csrfToken: "mock-csrf" }, meta: { requestId: reqId() } };
   }
 
@@ -255,11 +288,13 @@ class Store {
     };
     this.users.push(u);
     this.meUser = u;
+    this.persist();
     return { data: { ...u, csrfToken: "mock-csrf" }, meta: { requestId: reqId() } };
   }
 
   logout() {
     this.meUser = null;
+    this.persist();
     return { data: {}, meta: { requestId: reqId() } };
   }
 
@@ -282,7 +317,127 @@ class Store {
     return it!;
   }
 
-  // createDraft/patchDraft/submit приезжают с C-02 (мастер подачи).
+  // Черновик и подача (C-02). Маршрут считает dev-preview на словаре D;
+  // production-решение всегда приходит с сервера B (03 §9).
+  createDraft(body: { title?: string; problem?: string; solution?: string; expectedBenefit?: string }) {
+    const me = this.needAuth();
+    const d: MockIdea = {
+      id: `idea-${Math.random().toString(36).slice(2, 8)}`,
+      publicNumber: null,
+      version: 1,
+      title: body.title ?? "",
+      problem: body.problem ?? "",
+      solution: body.solution ?? "",
+      expectedBenefit: body.expectedBenefit ?? "",
+      requestedCategoryCode: null,
+      effectiveCategoryCode: null,
+      territoryCode: null,
+      locationText: "",
+      status: "DRAFT",
+      organizationCode: null,
+      assignee: null,
+      authorId: me.id,
+      submittedAt: null,
+      updatedAt: now(),
+      resolutionType: null,
+      routing: null,
+      attachments: [],
+      timeline: [],
+      comments: [],
+    };
+    this.ideas.unshift(d);
+    return { data: { id: d.id, version: 1 }, meta: { requestId: reqId() } };
+  }
+
+  patchDraft(id: string, body: Record<string, unknown>) {
+    const me = this.needAuth();
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it || it.authorId !== me.id) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (it!.status !== "DRAFT") fail(409, "INVALID_TRANSITION", "Черновик уже отправлен");
+    if (body.expectedVersion !== it!.version)
+      fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
+    for (const k of ["title", "problem", "solution", "expectedBenefit", "requestedCategoryCode", "territoryCode", "locationText"] as const) {
+      if (k in body) (it as unknown as Record<string, unknown>)[k] = body[k];
+    }
+    it!.version += 1;
+    it!.updatedAt = now();
+    return { data: { id: it!.id, version: it!.version }, meta: { requestId: reqId() } };
+  }
+
+  submit(id: string, body: { expectedVersion: number; consentAccepted: boolean }) {
+    const me = this.needAuth();
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it || it.authorId !== me.id) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (it.status !== "DRAFT")
+      return {
+        data: { id: it.id, publicNumber: it.publicNumber, status: it.status, version: it.version, routing: it.routing },
+        meta: { requestId: reqId() },
+      };
+    if (body.expectedVersion !== it.version)
+      fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
+    const fields: Record<string, string> = {};
+    if (it.title.trim().length < 10) fields.title = "Название короче 10 символов";
+    if (it.problem.trim().length < 30) fields.problem = "Нужно минимум 30 символов";
+    if (it.solution.trim().length < 30) fields.solution = "Нужно минимум 30 символов";
+    if (!it.territoryCode) fields.territoryCode = "Выберите территорию из справочника";
+    if (!body.consentAccepted) fields.consentAccepted = "Нужно согласие";
+    if (Object.keys(fields).length) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", fields);
+    const routing = previewRoute({
+      title: it.title,
+      problem: it.problem,
+      solution: it.solution,
+      requestedCategoryCode: (it.requestedCategoryCode as RoutingDecision["effectiveCategoryCode"]) ?? null,
+      territoryCode: it.territoryCode ?? "DEMO_SEMEY",
+    });
+    it.effectiveCategoryCode = routing.effectiveCategoryCode;
+    it.organizationCode = routing.organizationCode;
+    it.routing = routing;
+    it.status = "RECEIVED";
+    it.publicNumber = `ABAI-2026-${String(this.nextNumber++).padStart(6, "0")}`;
+    it.submittedAt = now();
+    it.version += 1;
+    it.updatedAt = now();
+    it.timeline.push({ id: `e-${Date.now()}`, at: now(), actor: me.displayName, text: "Идея зарегистрирована на платформе." });
+    return {
+      data: { id: it.id, publicNumber: it.publicNumber, status: it.status, version: it.version, routing },
+      meta: { requestId: reqId() },
+    };
+  }
+
+  clarify(id: string, body: { body: string; expectedVersion: number }) {
+    const me = this.needAuth();
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it || it.authorId !== me.id) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (it!.status !== "NEEDS_INFO") fail(409, "INVALID_TRANSITION", "Уточнение сейчас не запрашивается");
+    if (body.expectedVersion !== it!.version)
+      fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
+    if (body.body.trim().length < 10)
+      fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { body: "Ответ — минимум 10 символов" });
+    it!.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, body: body.body.trim(), at: now() });
+    it!.timeline.push({ id: `e-${Date.now()}`, at: now(), actor: me.displayName, text: "Автор дополнил идею." });
+    it!.status = "UNDER_REVIEW";
+    it!.version += 1;
+    it!.updatedAt = now();
+    return { data: { id: it!.id, version: it!.version, status: it!.status }, meta: { requestId: reqId() } };
+  }
+
+  attach(id: string, file: { name: string; size: number; type: string }, expectedVersion: number) {
+    const me = this.needAuth();
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it || it.authorId !== me.id) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (expectedVersion !== it!.version)
+      fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
+    if (it!.attachments.length >= 3)
+      fail(400, "VALIDATION_ERROR", "Максимум 3 активных файла", { file: "Удалите один файл перед загрузкой" });
+    if (file.size > 5 * 1024 * 1024) fail(413, "FILE_TOO_LARGE", "Файл больше 5 MiB");
+    if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type))
+      fail(415, "UNSUPPORTED_FILE_TYPE", "Этот формат не поддерживается. Выберите JPG, PNG, WebP или PDF");
+    const att = { id: `a-${Date.now()}`, name: file.name, size: file.size, mime: file.type };
+    it!.attachments.push(att);
+    it!.version += 1;
+    return { data: { attachment: att, ideaVersion: it!.version }, meta: { requestId: reqId() } };
+  }
+
   mine(params: { q?: string; status?: string }) {
     const me = this.needAuth();
     let list = this.ideas.filter((x) => x.authorId === me.id);
