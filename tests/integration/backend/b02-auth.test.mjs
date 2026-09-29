@@ -168,6 +168,11 @@ describe('B-02 auth and sessions', () => {
     const catJson = await cat.json();
     assert.equal(catJson.data.categories.length, 9);
     assert.ok(catJson.data.territories.length >= 2);
+    // C-04 joint: the wizard resolves territoryId UUID from catalogs.
+    for (const t of catJson.data.territories) {
+      assert.match(t.id, /^[0-9a-f-]{36}$/, 'territory id');
+      assert.ok(t.code);
+    }
     const live = await fetch(base + '/api/health/live');
     assert.equal(live.status, 200);
     const ready = await fetch(base + '/api/health/ready');

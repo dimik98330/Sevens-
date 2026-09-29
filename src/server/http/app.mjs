@@ -208,7 +208,7 @@ export function createHandler(db, config = appConfig()) {
         const categories = await db.query(
           'SELECT code, name_ru AS "nameRu", name_kk AS "nameKk" FROM categories WHERE active ORDER BY code');
         const territories = await db.query(
-          `SELECT t.code, t.kind, t.name_ru AS "nameRu", t.name_kk AS "nameKk"
+          `SELECT t.id, t.code, t.kind, t.name_ru AS "nameRu", t.name_kk AS "nameKk"
            FROM territories t JOIN regions r ON r.id = t.region_id
            WHERE t.active AND r.active ORDER BY t.code`);
         return sendJson(res, 200, successBody({
