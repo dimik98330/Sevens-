@@ -20,14 +20,14 @@ let ids = {};
 before(async () => {
   db = await openDatabase();
   await migrate(db);
-  const first = await seed(db);
+  const first = await seed(db, { demoPassword: 'test-Seed-12-chars' });
   ids = { regionId: first.regionId };
   // A draft idea that a reseed must never touch.
   await db.query(
     `INSERT INTO ideas(id, region_id, author_id, title) VALUES($1,$2,$3,'probe')`,
     ['11111111-1111-4111-8111-111111111111', first.regionId,
       uuidFromSeedKey('user:citizen1')]);
-  const second = await seed(db);
+  const second = await seed(db, { demoPassword: 'test-Seed-12-chars' });
   ids.secondStats = second.stats;
   const row = await db.query('SELECT * FROM ideas WHERE id=$1',
     ['11111111-1111-4111-8111-111111111111']);
@@ -167,6 +167,25 @@ describe('B-01 migrations and seed (INT-01)', () => {
       db.query(`UPDATE ideas SET assignee_id=$2 WHERE id=$1`,
         [ideaId, uuidFromSeedKey('user:staff_utilities')]),
       /ASSIGNEE_OUTSIDE_ORGANIZATION/);
+  });
+
+  it('seed fails closed without an explicit password', async () => {
+    const fresh = await openDatabase();
+    try {
+      await migrate(fresh);
+      await assert.rejects(seed(fresh), /DEMO_PASSWORD/);
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('transaction helper rolls back failed work', async () => {
+    await assert.rejects(db.transaction(async (tx) => {
+      await tx.query(`INSERT INTO regions(code, name_ru) VALUES('TMP','tmp')`);
+      throw new Error('boom');
+    }), /boom/);
+    const row = await db.query(`SELECT count(*)::int AS c FROM regions WHERE code='TMP'`);
+    assert.equal(row.rows[0].c, 0);
   });
 
   it('runtime contract mirror matches src/contracts/index.ts', () => {

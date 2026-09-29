@@ -31,7 +31,12 @@ export async function seed(db, options = {}) {
   if (fixture.schemaVersion !== 1 || fixture.syntheticOnly !== true) {
     throw new Error('Seed fixture must be schemaVersion 1 and syntheticOnly');
   }
-  const demoPassword = options.demoPassword || process.env.DEMO_PASSWORD || 'demo-ChangeMe-12-chars';
+  // Fail closed: no hardcoded demo password may create real credentials.
+  // Callers pass an explicit password (tests) or set DEMO_PASSWORD (local demo).
+  const demoPassword = options.demoPassword || process.env.DEMO_PASSWORD;
+  if (!demoPassword) {
+    throw new Error('Set DEMO_PASSWORD (12..128 chars) to seed demo accounts; refusing defaults');
+  }
   if (demoPassword.length < 12 || demoPassword.length > 128) {
     throw new Error('DEMO_PASSWORD must be 12..128 characters');
   }

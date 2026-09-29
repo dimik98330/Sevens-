@@ -70,18 +70,20 @@ export async function registerCitizen(db, body) {
     throw err;
   }
   const passwordHash = await hashPassword(input.password);
-  const created = await db.query(
-    `INSERT INTO users(email_normalized, display_name, password_hash, role, region_id)
-     VALUES($1,$2,$3,'CITIZEN',$4)
-     RETURNING id, display_name, role, organization_id, region_id`,
-    [emailNormalized, input.displayName, passwordHash, region.rows[0].id]);
-  const user = created.rows[0];
-  await db.query(
-    `INSERT INTO user_consents(user_id, purpose, version) VALUES($1,'service',$2)
-     ON CONFLICT DO NOTHING`,
-    [user.id, CONSENT_VERSION]);
-  const session = await createSession(db, user.id);
-  return { user, session };
+  return db.transaction(async (tx) => {
+    const created = await tx.query(
+      `INSERT INTO users(email_normalized, display_name, password_hash, role, region_id)
+       VALUES($1,$2,$3,'CITIZEN',$4)
+       RETURNING id, display_name, role, organization_id, region_id`,
+      [emailNormalized, input.displayName, passwordHash, region.rows[0].id]);
+    const user = created.rows[0];
+    await tx.query(
+      `INSERT INTO user_consents(user_id, purpose, version) VALUES($1,'service',$2)
+       ON CONFLICT DO NOTHING`,
+      [user.id, CONSENT_VERSION]);
+    const session = await createSession(tx, user.id);
+    return { user, session };
+  });
 }
 
 export async function login(db, body) {

@@ -11,8 +11,60 @@ import {
   SESSION_COOKIE, sha256Hex,
 } from '../auth/session.mjs';
 import { loginLimiter, registerLimiter } from '../auth/rateLimit.mjs';
-import { ERROR_CODES, errorBody, successBody } from '../../contracts/errors.mjs';
+import { ERROR_CODES, errorBody, successBody, listBody } from '../../contracts/errors.mjs';
 import { RULE_VERSION, CONSENT_VERSION } from '../../contracts/enums.mjs';
+import { createDraft, updateDraft, submitIdea } from '../ideas/service.mjs';
+import {
+  uploadAttachment, deleteAttachment, downloadAttachment, readMultipart,
+} from '../attachments/store.mjs';
+import {
+  loadIdeaForActor, citizenIdeaView, staffIdeaView, requireStaff,
+} from '../policies/scopes.mjs';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import path from 'node:path';
+
+async function ideaDetail(db, actor, idea) {
+  const att = await db.query(
+    `SELECT id, original_name AS "originalName", detected_mime AS mime,
+            size_bytes AS "sizeBytes", created_at AS "createdAt"
+     FROM attachments WHERE idea_id=$1 AND removed_at IS NULL ORDER BY created_at, id`,
+    [idea.id]);
+  const route = await db.query(
+    `SELECT source, mode, effective_category_code AS "effectiveCategoryCode",
+            (SELECT code FROM organizations o WHERE o.id=organization_id) AS "organizationCode",
+            tags_json AS tags, confidence_band AS "confidenceBand",
+            reason_codes_json AS "reasonCodes", explanation,
+            rule_version AS "ruleVersion", created_at AS "createdAt"
+     FROM routing_decisions WHERE idea_id=$1 ORDER BY created_at DESC, id DESC LIMIT 1`,
+    [idea.id]);
+  let assigneeDisplayName = null;
+  if (idea.assignee_id) {
+    const a = await db.query('SELECT display_name FROM users WHERE id=$1', [idea.assignee_id]);
+    assigneeDisplayName = a.rows[0]?.display_name || null;
+  }
+  if (actor.role === 'CITIZEN') {
+    return {
+      ...citizenIdeaView(idea, {
+        assigneeDisplayName,
+        organizationCode: route.rows[0]?.organizationCode || null,
+      }),
+      attachments: att.rows,
+      routing: route.rows[0] || null,
+    };
+  }
+  const author = await db.query(
+    'SELECT display_name, email_normalized FROM users WHERE id=$1', [idea.author_id]);
+  return {
+    ...staffIdeaView(idea, {
+      authorDisplayName: author.rows[0]?.display_name || null,
+      authorEmail: author.rows[0]?.email_normalized || null,
+      assigneeDisplayName,
+    }),
+    attachments: att.rows,
+    routing: route.rows[0] || null,
+  };
+}
 
 const BODY_LIMIT = 64 * 1024;
 
@@ -36,6 +88,12 @@ function sendJson(res, status, payload, privateCache = true) {
 }
 
 function sendError(res, err, requestId) {
+  // SQL guard violations that can surface through normal API use are mapped
+  // to contract codes; anything else stays a 503 without details.
+  if (err && /ATTACHMENT_LIMIT_REACHED/.test(err.message || '')) {
+    return sendJson(res, 400, errorBody('VALIDATION_ERROR',
+      'Максимум 3 активных файла', { file: 'Максимум 3 активных файла' }, requestId));
+  }
   const code = err.code && ERROR_CODES[err.code] ? err.code : 'SERVICE_UNAVAILABLE';
   const status = ERROR_CODES[code] || 503;
   const message = status === 503 ? 'Сервис временно недоступен' : err.message;
@@ -218,6 +276,166 @@ export function createHandler(db, config = appConfig()) {
           csrfToken,
         }, requestId));
       }
+      // Authenticated idea routes.
+      const actor = await currentSession(db, req).then((s) => {
+        if (!s) return null;
+        return {
+          id: s.uid, role: s.role,
+          organizationId: s.organization_id, regionId: s.region_id,
+        };
+      });
+      const needAuth = url.pathname.startsWith('/api/v1/ideas')
+        || url.pathname.startsWith('/api/v1/attachments/');
+      if (needAuth && !actor) {
+        const err = new Error('Требуется вход');
+        err.code = 'UNAUTHENTICATED';
+        throw err;
+      }
+      const needCsrf = needAuth && req.method !== 'GET' && req.method !== 'HEAD';
+      if (needCsrf) {
+        checkOrigin(req, config);
+        const session = await currentSession(db, req);
+        if (!verifyCsrf(session, req.headers['x-csrf-token'])) {
+          const err = new Error('Недопустимый CSRF-токен');
+          err.code = 'CSRF_INVALID';
+          throw err;
+        }
+      }
+      const idempotencyKey = req.headers['idempotency-key'];
+
+      if (url.pathname === '/api/v1/ideas' && req.method === 'POST') {
+        if (actor.role !== 'CITIZEN') {
+          const err = new Error('Нет доступа');
+          err.code = 'FORBIDDEN';
+          throw err;
+        }
+        const body = await readJsonBody(req);
+        const result = await createDraft(db, actor, body || {}, idempotencyKey, requestId);
+        return sendJson(res, result.status, successBody(result.body, requestId));
+      }
+
+      const ideaMatch = /^\/api\/v1\/ideas\/([0-9a-f-]{36})(\/.*)?$/.exec(url.pathname);
+      if (ideaMatch) {
+        const ideaId = ideaMatch[1];
+        const suffix = ideaMatch[2] || '';
+        if (suffix === '' && req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          const result = await updateDraft(db, actor, ideaId, body || {}, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        if (suffix === '/submit' && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const result = await submitIdea(db, actor, ideaId, body || {}, idempotencyKey, requestId);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        if (suffix === '' && req.method === 'GET') {
+          const idea = await loadIdeaForActor(db, actor, ideaId);
+          return sendJson(res, 200, successBody(await ideaDetail(db, actor, idea), requestId));
+        }
+        if (suffix === '/timeline' && req.method === 'GET') {
+          const idea = await loadIdeaForActor(db, actor, ideaId);
+          const staffView = actor.role !== 'CITIZEN';
+          const events = await db.query(
+            `SELECT id, type, actor_id AS "actorId", visibility,
+                    from_status AS "fromStatus", to_status AS "toStatus",
+                    comment_id AS "commentId", payload_json AS payload, created_at AS "createdAt"
+             FROM idea_events WHERE idea_id=$1
+             ${staffView ? '' : `AND visibility='PUBLIC'`}
+             ORDER BY created_at, id`,
+            [idea.id]);
+          return sendJson(res, 200, successBody(events.rows, requestId));
+        }
+        if (suffix === '/attachments' && req.method === 'POST') {
+          const parts = await readMultipart(req);
+          const file = parts.find((p) => p.filename);
+          const versionPart = parts.find((p) => p.name === 'expectedVersion');
+          const expectedVersion = Number((versionPart?.content || '').toString());
+          if (!Number.isInteger(expectedVersion)) {
+            const err = new Error('Требуется expectedVersion');
+            err.code = 'VALIDATION_ERROR';
+            err.fields = { expectedVersion: 'Обновите карточку и повторите' };
+            throw err;
+          }
+          const result = await uploadAttachment(db, actor, ideaId, {
+            filename: file?.filename || '',
+            content: file?.content || Buffer.alloc(0),
+          }, expectedVersion, idempotencyKey, requestId, config.uploadDir);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+        const delMatch = /^\/attachments\/([0-9a-f-]{36})$/.exec(suffix);
+        if (delMatch && req.method === 'DELETE') {
+          const body = await readJsonBody(req);
+          const result = await deleteAttachment(db, actor, ideaId, delMatch[1],
+            body?.expectedVersion, idempotencyKey, requestId, config.uploadDir);
+          return sendJson(res, result.status, successBody(result.body, requestId));
+        }
+      }
+
+      if (url.pathname === '/api/v1/ideas' && req.method === 'GET') {
+        const scope = url.searchParams.get('scope');
+        if (scope === 'mine') {
+          if (actor.role !== 'CITIZEN') {
+            const err = new Error('Нет доступа');
+            err.code = 'FORBIDDEN';
+            throw err;
+          }
+          const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+          const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 20));
+          const status = url.searchParams.get('status');
+          const q = (url.searchParams.get('q') || '').slice(0, 100);
+          const params = [actor.id];
+          let where = 'author_id=$1';
+          if (status) {
+            params.push(status);
+            where += ` AND status=$${params.length}`;
+          }
+          if (q) {
+            params.push(`%${q}%`);
+            where += ` AND (title ILIKE $${params.length} OR problem ILIKE $${params.length} OR solution ILIKE $${params.length} OR public_number ILIKE $${params.length})`;
+          }
+          const total = await db.query(`SELECT count(*)::int AS c FROM ideas WHERE ${where}`, params);
+          const rows = await db.query(
+            `SELECT id, public_number AS "publicNumber", title, status,
+                    effective_category_code AS "effectiveCategoryCode",
+                    submitted_at AS "submittedAt", created_at AS "createdAt",
+                    updated_at AS "updatedAt", version
+             FROM ideas WHERE ${where}
+             ORDER BY updated_at DESC, id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, pageSize, (page - 1) * pageSize]);
+          return sendJson(res, 200, listBody(rows.rows, page, pageSize, total.rows[0].c, requestId));
+        }
+        if (scope === 'staff' || scope === 'admin') {
+          requireStaff(actor);
+          const err = new Error('Очередь сотрудника — в B-04');
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+        const err = new Error('Нет доступа');
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
+
+      const dlMatch = /^\/api\/v1\/attachments\/([0-9a-f-]{36})\/download$/.exec(url.pathname);
+      if (dlMatch && req.method === 'GET') {
+        const meta = await downloadAttachment(db, actor, dlMatch[1]);
+        const filePath = path.join(config.uploadDir, meta.storageKey);
+        if (!path.resolve(filePath).startsWith(path.resolve(config.uploadDir) + path.sep)) {
+          const err = new Error('Не найдено');
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+        const size = (await stat(filePath)).size;
+        res.writeHead(200, {
+          'content-type': meta.mime,
+          'content-length': size,
+          'cache-control': 'private, no-store',
+          'x-content-type-options': 'nosniff',
+          ...(meta.mime === 'application/pdf'
+            ? { 'content-disposition': 'attachment' } : {}),
+        });
+        return createReadStream(filePath).pipe(res);
+      }
+
       const err = new Error('Не найдено');
       err.code = 'NOT_FOUND';
       throw err;

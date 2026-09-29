@@ -44,7 +44,7 @@ async function registerUser(suffix, extra = {}) {
 before(async () => {
   db = await openDatabase();
   await migrate(db);
-  await seed(db);
+  await seed(db, { demoPassword: 'test-Seed-12-chars' });
   server = createServer(db);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
