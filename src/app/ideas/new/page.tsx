@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "@/features/shared/api-client";
-import { store } from "@/features/shared/data";
+import { resolveTerritoryId, store } from "@/features/shared/data";
 import { useSession } from "@/features/shared/session";
 import { ErrorNotice, InfoNotice } from "@/components/ui/Feedback";
 import { previewRoute } from "@/features/shared/route-preview";
@@ -27,9 +27,8 @@ interface Catalog {
   territories: Array<{ id?: string; code: string; nameRu: string }>;
 }
 
-// B принимает territoryId (UUID); каталоги отдают id (пока нет — шлём code как раньше).
-// DTO-REQUEST к B (msg 87): добавить id в territories каталогов.
-const territoryValue = (t: { id?: string; code: string }) => t.id ?? t.code;
+// B принимает territoryId UUID из catalogs[].id (d37aeab); правило — в фасаде данных.
+const territoryValue = resolveTerritoryId;
 
 const CATEGORIES = ru.categories as Record<string, string>;
 

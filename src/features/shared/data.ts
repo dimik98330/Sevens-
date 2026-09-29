@@ -10,6 +10,13 @@ export function useMock(): boolean {
   return currentMockMode();
 }
 
+// C-04: territoryId для B — это catalogs[].id (UUID, d37aeab); code —
+// лишь fallback для старого каталога без id. Единое правило для
+// визарда в mock- и real-режимах: каталоги в обеих формах несут id.
+export function resolveTerritoryId(t: { id?: string; code: string }): string {
+  return t.id ?? t.code;
+}
+
 export const store = {
   catalogs: () => (useMock() ? Promise.resolve(mockStore.catalogs()) : api.get("/api/v1/catalogs")),
   login: (body: { email: string; password: string }) =>

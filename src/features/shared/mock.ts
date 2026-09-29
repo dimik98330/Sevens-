@@ -286,8 +286,18 @@ class Store {
       data: {
         categories: ["TRANSPORT", "UTILITIES", "EDUCATION", "ECOLOGY", "SAFETY", "HEALTH", "TOURISM", "ACCESSIBILITY", "OTHER"],
         territories: [
-          { code: "DEMO_SEMEY", nameRu: "Семей — демонстрационная территория" },
-          { code: "DEMO_LOCALITY", nameRu: "Демо-населённый пункт" },
+          {
+            id: "5abbde34-0000-4000-8000-000000000001",
+            code: "DEMO_SEMEY",
+            kind: "LOCALITY",
+            nameRu: "Семей — демонстрационная территория",
+          },
+          {
+            id: "5abbde34-0000-4000-8000-000000000002",
+            code: "DEMO_LOCALITY",
+            kind: "LOCALITY",
+            nameRu: "Демо-населённый пункт",
+          },
         ],
         ruleVersion: "rules-v1",
         consentVersion: "consent-v1",
@@ -391,8 +401,8 @@ class Store {
     for (const k of ["title", "problem", "solution", "expectedBenefit", "requestedCategoryCode", "locationText"] as const) {
       if (k in body) (it as unknown as Record<string, unknown>)[k] = body[k];
     }
-    // Dev mapping: настоящий B берёт territoryId UUID; mock принимает код
-    // (каталоги пока без id — DTO-REQUEST msg 87).
+    // Dev mapping: territoryId — UUID из catalogs[].id (d37aeab; mock
+    // зеркалит форму B). Mock хранит значение как есть.
     if ("territoryId" in body) it!.territoryCode = body.territoryId as string;
     it!.version += 1;
     it!.updatedAt = now();
