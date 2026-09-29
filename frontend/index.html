@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Идеи для региона — цифровые решения для области Абай. Прототип хакатона.">
+  <title>Идеи для региона — цифровые решения для области Абай</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержанию</a>
+  <div class="demo-banner" role="note" aria-label="Демонстрационный баннер">
+    Прототип хакатона. Маршруты и кабинеты органов демонстрационные. Реальная отправка в государственные системы не выполняется.
+  </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/" aria-label="Идеи для региона — на главную">
+        <span class="brand-mark" aria-hidden="true">◈</span>
+        <span class="brand-text"><strong>Идеи для региона</strong><small>Цифровые решения для области Абай</small></span>
+      </a>
+      <nav class="topnav" aria-label="Основная навигация">
+        <a href="#/" data-nav="home">Главная</a>
+        <a href="#/how" data-nav="how">Как работает</a>
+        <a href="#/my" data-nav="my" data-requires-auth="citizen">Мои идеи</a>
+        <a href="#/staff" data-nav="staff" data-requires-auth="staff">Очередь</a>
+        <a href="#/notifications" data-nav="notif" data-requires-auth="any" class="bell-link">Уведомления <span class="bell-count" id="bellCount" hidden>0</span></a>
+      </nav>
+      <div class="topbar-actions">
+        <span class="user-chip" id="userChip" hidden></span>
+        <a class="btn btn-secondary btn-sm" id="loginLink" href="#/login">Войти</a>
+        <button class="btn btn-secondary btn-sm" id="logoutBtn" hidden>Выйти</button>
+      </div>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileNav" aria-label="Открыть меню">☰</button>
+    </div>
+    <nav class="mobile-nav" id="mobileNav" aria-label="Мобильная навигация" hidden>
+      <a href="#/">Главная</a>
+      <a href="#/how">Как работает</a>
+      <a href="#/my">Мои идеи</a>
+      <a href="#/staff">Очередь сотрудника</a>
+      <a href="#/notifications">Уведомления</a>
+      <a href="#/login">Войти</a>
+    </nav>
+  </header>
+  <main id="main" class="page" tabindex="-1">
+    <div id="view" aria-live="off"></div>
+  </main>
+  <div class="toast-region" id="toasts" aria-live="polite" aria-atomic="false"></div>
+  <footer class="footer">
+    <div class="footer-inner">
+      <p><strong>Идеи для региона.</strong> Предложите идею. Следите за её развитием.</p>
+      <p class="muted">Прототип хакатона. Идея регистрируется на платформе и направляется в демонстрационную очередь. Официальная регистрация обращения, eOtinish/eGov и ЭЦП в MVP отсутствуют.</p>
+      <p class="muted" id="backendNote">Режим данных: <span id="backendMode">демо-mock по контракту</span>. <a href="#/settings">Настройка backend</a></p>
+    </div>
+  </footer>
+  <noscript><p style="padding:24px">Для работы прототипа нужен включённый JavaScript.</p></noscript>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

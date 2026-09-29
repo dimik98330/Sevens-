@@ -1,0 +1,15 @@
+{
+  "name": "abai-ideas-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "C-frontend: кабинеты жителя и сотрудника «Идеи для региона». Статика + typed API-клиент; mock только для разработки.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/routing.test.js tests/contracts.test.js",
+    "start": "node server.mjs --mock --port 5173",
+    "start:real": "node server.mjs --port 5173"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
