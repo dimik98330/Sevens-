@@ -38,11 +38,11 @@ export default function RegisterPage() {
     <div className="narrow">
       <div className="card">
         <h1>Регистрация жителя</h1>
-        {error && <ErrorNotice error={error} />}
+        {error && <ErrorNotice error={error} id="register-error" />}
         <form onSubmit={submit} noValidate>
           <div className="field">
             <label htmlFor="name">Имя</label>
-            <input id="name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} />
+            <input id="name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} aria-invalid={error ? "true" : undefined} aria-describedby={error ? "register-error" : undefined} />
           </div>
           <div className="field">
             <label htmlFor="email">Email</label>
@@ -53,6 +53,8 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "register-error" : undefined}
             />
           </div>
           <div className="field">
@@ -71,9 +73,9 @@ export default function RegisterPage() {
             </p>
           </div>
           <div className="field">
-            <input id="consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />{" "}
-            <label htmlFor="consent" style={{ display: "inline", fontWeight: 400 }}>
-              Соглашаюсь на обработку данных в рамках демонстрационного сервиса
+            <label htmlFor="consent" className="check-row">
+              <input id="consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} aria-invalid={error ? "true" : undefined} aria-describedby={error ? "register-error" : undefined} />
+              <span>Соглашаюсь на обработку данных в рамках демонстрационного сервиса</span>
             </label>
           </div>
           <button className="btn btn-primary btn-block" type="submit" disabled={busy}>

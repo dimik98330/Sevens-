@@ -32,7 +32,7 @@ export function orgName(code: string | null | undefined): string {
 // Статус различается цветом, текстом и пиктограммой (05 §2), никогда одним цветом.
 export function StatusBadge({ status }: { status: IdeaStatus }) {
   return (
-    <span className="status" data-s={status} aria-label={`Статус: ${STATUSES[status]}`}>
+    <span className="status" data-s={status}>
       <span aria-hidden="true">{ICONS[status]}</span> {STATUSES[status]}
     </span>
   );

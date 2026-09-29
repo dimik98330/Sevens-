@@ -73,7 +73,7 @@ export default function NotificationsPage() {
         {items?.map((n) => (
           <div key={n.id} className="idea-row">
             <div>
-              <Link href={`/ideas/${n.ideaId}`} onClick={(e) => { e.preventDefault(); open(n); }} style={{ fontWeight: 700, color: "inherit" }}>
+              <Link href={`/ideas/${n.ideaId}`} onClick={() => open(n)} style={{ fontWeight: 700, color: "inherit" }}>
                 {n.title}
               </Link>
               <p className="meta">

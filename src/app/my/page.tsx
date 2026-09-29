@@ -139,7 +139,12 @@ function MyIdeas() {
                   Продолжить
                 </Link>
               ) : (
-                <Link className="btn btn-secondary btn-sm" href={`/ideas/${it.id}`}>
+                <Link
+                  className="btn btn-secondary btn-sm"
+                  href={`/ideas/${it.id}`}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                >
                   Открыть
                 </Link>
               )}

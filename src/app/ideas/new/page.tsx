@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "@/features/shared/api-client";
 import { store } from "@/features/shared/data";
 import { useSession } from "@/features/shared/session";
@@ -82,9 +82,28 @@ function Wizard() {
   const fail = (err: ApiError) => {
     setError(err);
     setFieldErrors(err.detail?.fields ?? {});
-    document.querySelector("[aria-invalid='true']")?.scrollIntoView({ block: "center" });
-    (document.querySelector("[aria-invalid='true']") as HTMLElement | null)?.focus();
+    focusFirstInvalid();
   };
+
+  const focusFirstInvalid = () => {
+    requestAnimationFrame(() => {
+      const t = document.querySelector("[aria-invalid='true']") as HTMLElement | null;
+      if (t) {
+        t.scrollIntoView({ block: "center" });
+        t.focus();
+      }
+    });
+  };
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [step]);
 
   const saveStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +115,7 @@ function Wizard() {
     if ([...data.solution.trim()].length < 30) fe.solution = "Нужно минимум 30 символов — опишите подробнее";
     if (Object.keys(fe).length) {
       setFieldErrors(fe);
+      focusFirstInvalid();
       return;
     }
     setBusy(true);
@@ -129,6 +149,7 @@ function Wizard() {
     e.preventDefault();
     if (!data.territoryCode) {
       setFieldErrors({ territoryCode: "Выберите территорию из справочника" });
+      focusFirstInvalid();
       return;
     }
     if (!id || version === null) return;
@@ -213,13 +234,15 @@ function Wizard() {
   return (
     <div className="narrow">
       <div className="card">
-        <h1>Новая идея</h1>
+        <h1 ref={headingRef} tabIndex={-1}>
+          Новая идея
+        </h1>
         <ol className="steps" aria-label="Шаги подачи">
           <li aria-current={step === 1 ? "step" : undefined}>1. Что предлагаете</li>
           <li aria-current={step === 2 ? "step" : undefined}>2. Где и направление</li>
           <li aria-current={step === 3 ? "step" : undefined}>3. Проверка и отправка</li>
         </ol>
-        {error && <ErrorNotice error={error} />}
+        {error && <ErrorNotice error={error} id="send-error" />}
         {step === 1 && (
           <form onSubmit={saveStep1} noValidate>
             <div className="field">
@@ -230,33 +253,49 @@ function Wizard() {
                 value={data.title}
                 onChange={set("title")}
                 aria-invalid={fieldErrors.title ? "true" : undefined}
-                aria-describedby="title-h"
+                aria-describedby={fieldErrors.title ? "title-h title-e" : "title-h"}
               />
               <p className="hint" id="title-h">
                 10–120 символов. Например: «Умные светофоры рядом со школой».
               </p>
               {fieldErrors.title && (
-                <p className="field-error" role="alert">
+                <p className="field-error" id="title-e" role="alert">
                   {fieldErrors.title}
                 </p>
               )}
             </div>
             <div className="field">
               <label htmlFor="problem">Что сейчас неудобно? (проблема)</label>
-              <textarea id="problem" value={data.problem} onChange={set("problem")} aria-invalid={fieldErrors.problem ? "true" : undefined} />
-              <p className="hint">Минимум 30 символов. Опишите проблему, а не решение.</p>
+              <textarea
+                id="problem"
+                value={data.problem}
+                onChange={set("problem")}
+                aria-invalid={fieldErrors.problem ? "true" : undefined}
+                aria-describedby={fieldErrors.problem ? "problem-h problem-e" : "problem-h"}
+              />
+              <p className="hint" id="problem-h">
+                Минимум 30 символов. Опишите проблему, а не решение.
+              </p>
               {fieldErrors.problem && (
-                <p className="field-error" role="alert">
+                <p className="field-error" id="problem-e" role="alert">
                   {fieldErrors.problem}
                 </p>
               )}
             </div>
             <div className="field">
               <label htmlFor="solution">Как цифровая технология может помочь? (решение)</label>
-              <textarea id="solution" value={data.solution} onChange={set("solution")} aria-invalid={fieldErrors.solution ? "true" : undefined} />
-              <p className="hint">Минимум 30 символов.</p>
+              <textarea
+                id="solution"
+                value={data.solution}
+                onChange={set("solution")}
+                aria-invalid={fieldErrors.solution ? "true" : undefined}
+                aria-describedby={fieldErrors.solution ? "solution-h solution-e" : "solution-h"}
+              />
+              <p className="hint" id="solution-h">
+                Минимум 30 символов.
+              </p>
               {fieldErrors.solution && (
-                <p className="field-error" role="alert">
+                <p className="field-error" id="solution-e" role="alert">
                   {fieldErrors.solution}
                 </p>
               )}
@@ -274,7 +313,13 @@ function Wizard() {
           <form onSubmit={saveStep2} noValidate>
             <div className="field">
               <label htmlFor="territory">Населённый пункт / территория</label>
-              <select id="territory" value={data.territoryCode} onChange={set("territoryCode")} aria-invalid={fieldErrors.territoryCode ? "true" : undefined}>
+              <select
+                id="territory"
+                value={data.territoryCode}
+                onChange={set("territoryCode")}
+                aria-invalid={fieldErrors.territoryCode ? "true" : undefined}
+                aria-describedby={fieldErrors.territoryCode ? "terr-h terr-e" : "terr-h"}
+              >
                 <option value="">— выберите из справочника —</option>
                 {catalog?.territories.map((t) => (
                   <option key={t.code} value={t.code}>
@@ -282,9 +327,11 @@ function Wizard() {
                   </option>
                 ))}
               </select>
-              <p className="hint">Справочник, а не карта.</p>
+              <p className="hint" id="terr-h">
+                Справочник, а не карта.
+              </p>
               {fieldErrors.territoryCode && (
-                <p className="field-error" role="alert">
+                <p className="field-error" id="terr-e" role="alert">
                   {fieldErrors.territoryCode}
                 </p>
               )}
@@ -376,10 +423,16 @@ function Wizard() {
             )}
             <form onSubmit={submit}>
               <div className="field">
-                <input id="consent" type="checkbox" />{" "}
-                <label htmlFor="consent" style={{ display: "inline", fontWeight: 400 }}>
-                  Подтверждаю отправку идеи (согласие на обработку в демо-сервисе). Публикация отдельно не
-                  выполняется.
+                <label htmlFor="consent" className="check-row">
+                  <input
+                    id="consent"
+                    type="checkbox"
+                    aria-describedby={error ? "send-error" : undefined}
+                  />
+                  <span>
+                    Подтверждаю отправку идеи (согласие на обработку в демо-сервисе). Публикация отдельно не
+                    выполняется.
+                  </span>
                 </label>
               </div>
               <p className="btn-row">

@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <SessionProvider>
           <SiteHeader />
-          <main id="main" className="page">
+          <main id="main" className="page" tabIndex={-1}>
             {children}
           </main>
           <footer className="footer">

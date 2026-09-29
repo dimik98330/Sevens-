@@ -40,8 +40,15 @@ body {
   line-height: 1.55;
 }
 
-h1, h2, p, li, dd, dt {
+h1, h2, p, li, dd, dt,
+.idea-row > div,
+.file-row span,
+.notice {
   overflow-wrap: break-word;
+}
+
+.notice code {
+  overflow-wrap: anywhere;
 }
 
 .skip-link {
@@ -311,6 +318,22 @@ h1 {
   border-color: var(--danger);
 }
 
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--accent);
+}
+
 .field-error {
   color: var(--danger);
   font-size: 14px;
@@ -371,11 +394,17 @@ h1 {
 
 .idea-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: flex-start;
   justify-content: space-between;
   padding: 14px 0;
   border-top: 1px solid var(--border);
+}
+
+.idea-row > div {
+  min-width: 0;
+  flex: 1 1 200px;
 }
 
 .idea-row:first-of-type {
@@ -544,11 +573,17 @@ table.queue td {
 
 .file-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
   font-size: 14px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.file-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .footer {
@@ -637,16 +672,16 @@ table.queue td {
   }
 }
 
+.queue-scroll {
+  overflow-x: auto;
+}
+
 @media (max-width: 420px) {
   .grid-3 {
     grid-template-columns: 1fr;
   }
   .page {
     padding: 16px 12px 40px;
-  }
-  table.queue {
-    display: block;
-    overflow-x: auto;
   }
 }
 

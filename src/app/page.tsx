@@ -49,7 +49,7 @@ export default function HomePage() {
           ))}
         </p>
       </div>
-      <div className="card" aria-label="Пример карточки идеи">
+      <div className="card">
         <span className="example-label">ПРИМЕР</span>
         <h2 style={{ marginTop: 4 }}>Умные светофоры рядом со школой</h2>
         <p>

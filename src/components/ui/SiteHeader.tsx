@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/features/shared/session";
 import { currentMockMode } from "@/features/shared/mock";
 
@@ -17,9 +17,21 @@ export function SiteHeader() {
   const { user, unread, signOut } = useSession();
   const [open, setOpen] = useState(false);
   const [showMock, setShowMock] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     setShowMock(currentMockMode());
   }, []);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        menuBtnRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const authed = user !== null;
   const citizen = user?.role === "CITIZEN";
@@ -86,6 +98,7 @@ export function SiteHeader() {
         </div>
         <button
           type="button"
+          ref={menuBtnRef}
           className="menu-btn"
           aria-expanded={open}
           aria-controls="mobileNav"
@@ -96,24 +109,25 @@ export function SiteHeader() {
         </button>
       </div>
       <nav className="mobile-nav" id="mobileNav" aria-label="Мобильная навигация" hidden={!open}>
-        <Link href="/" onClick={() => setOpen(false)}>
+        {user && <p className="muted" style={{ padding: "12px 8px 0" }}>{user.displayName}</p>}
+        <Link href="/" onClick={() => setOpen(false)} aria-current={isActive(pathname, "/") && pathname === "/" ? "page" : undefined}>
           Главная
         </Link>
-        <Link href="/how" onClick={() => setOpen(false)}>
+        <Link href="/how" onClick={() => setOpen(false)} aria-current={isActive(pathname, "/how") ? "page" : undefined}>
           Как работает
         </Link>
         {citizen && (
-          <Link href="/my" onClick={() => setOpen(false)}>
+          <Link href="/my" onClick={() => setOpen(false)} aria-current={isActive(pathname, "/my") ? "page" : undefined}>
             Мои идеи
           </Link>
         )}
         {staff && (
-          <Link href="/staff" onClick={() => setOpen(false)}>
+          <Link href="/staff" onClick={() => setOpen(false)} aria-current={isActive(pathname, "/staff") ? "page" : undefined}>
             Очередь сотрудника
           </Link>
         )}
         {authed && (
-          <Link href="/notifications" onClick={() => setOpen(false)}>
+          <Link href="/notifications" onClick={() => setOpen(false)} aria-current={isActive(pathname, "/notifications") ? "page" : undefined}>
             Уведомления{unread > 0 ? ` (${unread})` : ""}
           </Link>
         )}

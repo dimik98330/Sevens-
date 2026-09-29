@@ -17,12 +17,12 @@ const MESSAGE_BY_CODE: Record<string, string> = {
   SERVICE_UNAVAILABLE: "Сервис временно недоступен. Попробуйте позже.",
 };
 
-export function ErrorNotice({ error, onRetry }: { error: ApiErrorDetail | Error; onRetry?: () => void }) {
+export function ErrorNotice({ error, onRetry, id }: { error: ApiErrorDetail | Error; onRetry?: () => void; id?: string }) {
   const d = "detail" in error ? (error as { detail: ApiErrorDetail }).detail : (error as ApiErrorDetail);
   const code = d.code ?? "UNKNOWN_ERROR";
   const text = code === "VALIDATION_ERROR" && d.message ? d.message : (MESSAGE_BY_CODE[code] ?? d.message ?? "Что-то пошло не так.");
   return (
-    <div className="notice error" role="alert">
+    <div className="notice error" role="alert" id={id}>
       <strong>
         Ошибка{d.http ? ` ${d.http}` : ""} ({code})
       </strong>
@@ -68,12 +68,15 @@ export function EmptyState({ title, text, action }: { title: string; text: strin
 
 export function Skeleton({ lines = 3 }: { lines?: number }) {
   return (
-    <div aria-hidden="true" aria-label="Загрузка">
-      {Array.from({ length: lines }, (_, i) => (
-        <div key={i}>
-          <div className="skeleton" style={{ width: i === 0 ? "60%" : "100%" }} />
-        </div>
-      ))}
+    <div role="status">
+      <span className="sr-only">Загрузка…</span>
+      <div aria-hidden="true">
+        {Array.from({ length: lines }, (_, i) => (
+          <div key={i}>
+            <div className="skeleton" style={{ width: i === 0 ? "60%" : "100%" }} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

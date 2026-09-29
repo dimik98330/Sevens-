@@ -155,12 +155,18 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
                 <form onSubmit={sendAnswer}>
                   <div className="field">
                     <label htmlFor="answer">Ваш ответ</label>
-                    <textarea id="answer" value={answer} onChange={(e) => setAnswer(e.target.value)} aria-describedby="answer-h" />
+                    <textarea
+                      id="answer"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      aria-invalid={formError ? "true" : undefined}
+                      aria-describedby={formError ? "answer-h answer-e" : "answer-h"}
+                    />
                     <p className="hint" id="answer-h">
                       Ваш ответ добавится в историю, исходный текст идеи сохранится. 10–3000 символов.
                     </p>
                   </div>
-                  {formError && <ErrorNotice error={formError} />}
+                  {formError && <ErrorNotice error={formError} id="answer-e" />}
                   <button className="btn btn-primary" type="submit" disabled={busy}>
                     {busy ? "Отправляем…" : "Отправить ответ"}
                   </button>

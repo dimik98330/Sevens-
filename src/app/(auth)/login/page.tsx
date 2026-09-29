@@ -38,7 +38,7 @@ export default function LoginPage() {
     <div className="narrow">
       <div className="card">
         <h1>Вход</h1>
-        {error && <ErrorNotice error={error} />}
+        {error && <ErrorNotice error={error} id="login-error" />}
         <form onSubmit={submit} noValidate>
           <div className="field">
             <label htmlFor="email">Email</label>
@@ -49,7 +49,8 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              aria-describedby="email-h"
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "email-h login-error" : "email-h"}
             />
             <p className="hint" id="email-h">
               Ошибки входа не уточняют, существует ли такой email.
