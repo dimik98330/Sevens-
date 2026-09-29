@@ -112,26 +112,57 @@ export interface TimelineRow {
   at: string;
   actor?: string;
   text: string;
+  body?: string;
+  visibility?: string;
+}
+
+export interface ThreadComment {
+  id: string;
+  visibility: "PUBLIC" | "INTERNAL";
+  author: string;
+  body: string;
+  at: string;
+}
+
+interface RawEvent {
+  id?: string;
+  createdAt?: string;
+  actorId?: string;
+  type?: string;
+  visibility?: string;
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  commentBody?: string | null;
 }
 
 export function mapTimeline(
   items: unknown,
   withActor: boolean,
 ): TimelineRow[] {
-  const list = (Array.isArray(items) ? items : []) as Array<{
-    id?: string;
-    createdAt?: string;
-    actorId?: string;
-    type?: string;
-    fromStatus?: string | null;
-    toStatus?: string | null;
-  }>;
+  const list = (Array.isArray(items) ? items : []) as RawEvent[];
   return list.map((e, i) => ({
     id: String(e.id ?? `ev-${i}`),
     at: String(e.createdAt ?? ""),
     ...(withActor && e.actorId ? { actor: String(e.actorId).slice(0, 8) } : {}),
     text: eventText(e),
+    ...(typeof e.commentBody === "string" && e.commentBody ? { body: e.commentBody } : {}),
+    ...(typeof e.visibility === "string" ? { visibility: e.visibility } : {}),
   }));
+}
+
+// Тела реплик (A DECISION msg 133): B раскрывает commentBody в событии
+// timeline (гражданину — только PUBLIC, сотруднику — все). Фасад сводит их
+// к форме comments[], которую уже рендерят обе деталки.
+export function threadFromTimeline(items: unknown, withActor: boolean): ThreadComment[] {
+  return mapTimeline(items, withActor)
+    .filter((r) => typeof r.body === "string" && r.body.length > 0)
+    .map((r) => ({
+      id: r.id,
+      visibility: r.visibility === "INTERNAL" ? "INTERNAL" as const : "PUBLIC" as const,
+      author: r.actor ?? "",
+      body: r.body as string,
+      at: r.at,
+    }));
 }
 
 export const store = {
@@ -174,7 +205,7 @@ export const store = {
       api.get<unknown[]>(`/api/v1/ideas/${id}/timeline`),
     ]);
     return {
-      data: { ...detail.data, timeline: mapTimeline(tl.data, false), comments: [] },
+      data: { ...detail.data, timeline: mapTimeline(tl.data, false), comments: threadFromTimeline(tl.data, false) },
       meta: detail.meta,
     };
   },
@@ -208,7 +239,7 @@ export const store = {
       api.get<unknown[]>(`/api/v1/ideas/${id}/timeline`),
     ]);
     return {
-      data: { ...detail.data, timeline: mapTimeline(tl.data, true), comments: [] },
+      data: { ...detail.data, timeline: mapTimeline(tl.data, true), comments: threadFromTimeline(tl.data, true) },
       meta: detail.meta,
     };
   },

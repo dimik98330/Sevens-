@@ -86,9 +86,11 @@ export interface TimelineItem {
   at: string;
   actor?: string;
   text: string;
+  body?: string;
 }
 
 // История — вертикальная лента, не progress bar (05 §8).
+// body — текст реплики из timeline.commentBody (A DECISION msg 133).
 export function Timeline({ items }: { items: TimelineItem[] }) {
   if (!items.length) return <p className="muted">История пока пуста.</p>;
   const sorted = [...items].sort((a, b) => (a.at < b.at ? -1 : 1));
@@ -101,6 +103,12 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
           </time>
           <br />
           <strong>{e.actor ?? ""}</strong> — {e.text}
+          {e.body && (
+            <>
+              <br />
+              <span>{e.body}</span>
+            </>
+          )}
         </li>
       ))}
     </ol>

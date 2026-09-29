@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapTimeline, normalizeAuthResponse, normalizeCatalogs, resolveTerritoryId, store } from "@/features/shared/data";
+import { mapTimeline, normalizeAuthResponse, normalizeCatalogs, resolveTerritoryId, store, threadFromTimeline } from "@/features/shared/data";
 
 // C-04: клиент шлёт настоящий B те же идентификаторы, что B отдаёт в каталогах.
 // d37aeab: GET /api/v1/catalogs territories несут id UUID; territoryId черновика —
@@ -80,6 +80,20 @@ describe("C-04 real-mode identifiers", () => {
       "Идея зарегистрирована на платформе",
       "Маршрут изменён",
     ]);
+  });
+
+  it("thread carries commentBody from timeline events (A msg 133 shape)", () => {
+    const thread = threadFromTimeline(
+      [
+        { id: "e1", createdAt: "2026-09-29T10:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_PUBLIC", visibility: "PUBLIC", commentBody: "Принято в работу." },
+        { id: "e2", createdAt: "2026-09-29T11:00:00Z", actorId: "staff-uuid-1", type: "COMMENT_INTERNAL", visibility: "INTERNAL", commentBody: "Для коллег." },
+        { id: "e3", createdAt: "2026-09-29T12:00:00Z", actorId: "staff-uuid-1", type: "STATUS_CHANGED", visibility: "PUBLIC", fromStatus: "RECEIVED", toStatus: "UNDER_REVIEW", commentBody: null },
+      ],
+      true,
+    );
+    expect(thread).toHaveLength(2);
+    expect(thread[0]).toMatchObject({ visibility: "PUBLIC", body: "Принято в работу." });
+    expect(thread[1]).toMatchObject({ visibility: "INTERNAL", body: "Для коллег." });
   });
 
   it("staff queue maps UI unassigned=1 to the real assignee=unassigned sentinel", async () => {
