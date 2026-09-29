@@ -230,6 +230,28 @@ describe('B-04 full cycle (E2E-01 spine)', () => {
     });
     assert.equal(citizenAssign.status, 403);
   });
+
+  it('same-org assignment succeeds and writes ASSIGNED then UNASSIGNED events', async () => {
+    const author = await registerCitizen('assignok');
+    const idea = await submitFreshIdea(author);
+    const staff = await loginAs('transport@example.test');
+    const a1 = await req('POST', `/api/v1/ideas/${idea.id}/assignment`, {
+      ...staff, key: randomUUID(), body: { assigneeId: staff.user.id, expectedVersion: idea.version },
+    });
+    assert.equal(a1.status, 200);
+    const b1 = (await a1.json()).data;
+    assert.equal(b1.assigneeId, staff.user.id);
+    const a2 = await req('POST', `/api/v1/ideas/${idea.id}/assignment`, {
+      ...staff, key: randomUUID(), body: { assigneeId: null, expectedVersion: b1.version },
+    });
+    assert.equal(a2.status, 200);
+    assert.equal((await a2.json()).data.assigneeId, null);
+    const ev = await db.query(
+      `SELECT type FROM idea_events WHERE idea_id=$1 ORDER BY created_at, id`, [idea.id]);
+    const types = ev.rows.map((r) => r.type);
+    assert.ok(types.includes('ASSIGNED'));
+    assert.ok(types.includes('UNASSIGNED'));
+  });
 });
 
 describe('B-04 reroute (E2E-05/E2E-09)', () => {

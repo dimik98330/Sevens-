@@ -99,7 +99,7 @@ export async function assignIdea(db, actor, ideaId, body, key, requestId) {
     const ev = await tx.query(
       `INSERT INTO idea_events(idea_id, type, actor_id, visibility, payload_json)
        VALUES($1,$2,$3,'INTERNAL',$4) RETURNING id`,
-      [ideaId, actor.id, assigneeId
+      [ideaId, assigneeId ? 'ASSIGNED' : 'UNASSIGNED', actor.id, assigneeId
         ? JSON.stringify({ assigneeId })
         : JSON.stringify({ unassigned: true })]);
     void ev;
