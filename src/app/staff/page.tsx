@@ -17,8 +17,15 @@ interface Row {
   publicNumber: string | null;
   status: IdeaStatus;
   effectiveCategoryCode: string | null;
-  assignee: { id: string; name: string } | null;
+  assigneeDisplayName?: string | null;
+  assignee?: { id: string; name: string } | null;
   updatedAt: string;
+}
+
+interface Territory {
+  id?: string;
+  code: string;
+  nameRu: string;
 }
 
 const CATEGORIES = ru.categories as Record<string, string>;
@@ -34,21 +41,30 @@ function Queue() {
   const [q, setQ] = useState(params.get("q") ?? "");
   const [category, setCategory] = useState(params.get("category") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
+  const [territory, setTerritory] = useState(params.get("territory") ?? "");
   const [unassigned, setUnassigned] = useState(params.get("unassigned") ?? "");
+  const [orgId, setOrgId] = useState(params.get("organizationId") ?? "");
+  const [territories, setTerritories] = useState<Territory[]>([]);
+  const [orgs, setOrgs] = useState<Array<{ id: string; name: string }>>([]);
   const page = Math.max(1, parseInt(params.get("page") ?? "1", 10) || 1);
 
   const load = useCallback(
     async (pg: number) => {
       setError(null);
       try {
-        const { data, meta } = await store.staffList({
+        const p: Record<string, string> = {
           q: (params.get("q") ?? "") || "",
           category: params.get("category") ?? "",
           status: params.get("status") ?? "",
+          territory: params.get("territory") ?? "",
           unassigned: params.get("unassigned") ?? "",
           page: String(pg),
           pageSize: String(PAGE_SIZE),
-        });
+        };
+        // B 403s без organizationId: STAFF — своя, ADMIN — выбранная (msg 86).
+        const oid = params.get("organizationId") ?? (user?.role === "STAFF" ? (user.organizationId ?? "") : "");
+        if (oid) p.organizationId = oid;
+        const { data, meta } = await store.staffList(p);
         setRows(data as Row[]);
         setTotal((meta as { total?: number }).total ?? (data as Row[]).length);
       } catch (err) {
@@ -56,11 +72,23 @@ function Queue() {
         setError(err as ApiError);
       }
     },
-    [params],
+    [params, user],
   );
 
   useEffect(() => {
-    if (checked && user) load(page);
+    if (checked && user) {
+      store
+        .catalogs()
+        .then(({ data }) => setTerritories((data as { territories: Territory[] }).territories ?? []))
+        .catch(() => {});
+      if (user.role === "ADMIN") {
+        store
+          .adminOrganizations()
+          .then(({ data }) => setOrgs(data as Array<{ id: string; name: string }>))
+          .catch(() => {});
+      }
+      load(page);
+    }
   }, [checked, user, page, load]);
 
   useEffect(() => {
@@ -78,12 +106,25 @@ function Queue() {
     if (q) s.set("q", q);
     if (category) s.set("category", category);
     if (status) s.set("status", status);
+    if (territory) s.set("territory", territory);
     if (unassigned) s.set("unassigned", unassigned);
+    if (orgId) s.set("organizationId", orgId);
     router.push(`/staff${s.toString() ? `?${s}` : ""}`);
   };
 
-  const filtered = q || category || status || unassigned;
+  const resetAll = () => {
+    setQ("");
+    setCategory("");
+    setStatus("");
+    setTerritory("");
+    setUnassigned("");
+    setOrgId("");
+    router.push("/staff");
+  };
+
+  const filtered = q || category || status || territory || unassigned || orgId;
   const pages = Math.ceil(total / PAGE_SIZE);
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className="card">
@@ -108,27 +149,40 @@ function Queue() {
               </option>
             ))}
         </select>
+        <select value={territory} onChange={(e) => setTerritory(e.target.value)} aria-label="Территория">
+          <option value="">Все территории</option>
+          {territories.map((t) => (
+            <option key={t.code} value={t.code}>
+              {t.nameRu}
+            </option>
+          ))}
+        </select>
         <select value={unassigned} onChange={(e) => setUnassigned(e.target.value)} aria-label="Ответственный">
           <option value="">Все</option>
           <option value="1">Без ответственного</option>
         </select>
+        {isAdmin && (
+          <select value={orgId} onChange={(e) => setOrgId(e.target.value)} aria-label="Организация" required>
+            <option value="">— выберите организацию —</option>
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        )}
         <button className="btn btn-secondary btn-sm" type="submit">
           Применить
         </button>
-        <button
-          className="btn btn-secondary btn-sm"
-          type="button"
-          onClick={() => {
-            setQ("");
-            setCategory("");
-            setStatus("");
-            setUnassigned("");
-            router.push("/staff");
-          }}
-        >
+        <button className="btn btn-secondary btn-sm" type="button" onClick={resetAll}>
           Сбросить
         </button>
       </form>
+      {isAdmin && !orgId && (
+        <p className="muted" role="status">
+          Выберите организацию, чтобы увидеть её очередь.
+        </p>
+      )}
       <div aria-live="polite">
         {error && <ErrorNotice error={error} onRetry={() => load(page)} />}
         {rows === null && <Skeleton lines={4} />}
@@ -138,17 +192,7 @@ function Queue() {
             text={filtered ? ru.emptyFilter : ru.emptyQueue}
             action={
               filtered ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setQ("");
-                    setCategory("");
-                    setStatus("");
-                    setUnassigned("");
-                    router.push("/staff");
-                  }}
-                >
+                <button type="button" className="btn btn-secondary" onClick={resetAll}>
                   Сбросить фильтры
                 </button>
               ) : undefined
@@ -179,7 +223,7 @@ function Queue() {
                   <td>
                     <StatusBadge status={it.status} />
                   </td>
-                  <td>{it.assignee?.name ?? "—"}</td>
+                  <td>{it.assigneeDisplayName ?? it.assignee?.name ?? "—"}</td>
                   <td>{new Date(it.updatedAt).toLocaleDateString("ru-RU")}</td>
                 </tr>
               ))}

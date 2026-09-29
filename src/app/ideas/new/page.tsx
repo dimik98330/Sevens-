@@ -17,15 +17,19 @@ interface DraftData {
   problem: string;
   solution: string;
   expectedBenefit: string;
-  territoryCode: string;
+  territoryId: string;
   locationText: string;
   requested: string; // AUTO или код
 }
 
 interface Catalog {
   categories: string[];
-  territories: Array<{ code: string; nameRu: string }>;
+  territories: Array<{ id?: string; code: string; nameRu: string }>;
 }
+
+// B принимает territoryId (UUID); каталоги отдают id (пока нет — шлём code как раньше).
+// DTO-REQUEST к B (msg 87): добавить id в territories каталогов.
+const territoryValue = (t: { id?: string; code: string }) => t.id ?? t.code;
 
 const CATEGORIES = ru.categories as Record<string, string>;
 
@@ -41,7 +45,7 @@ function Wizard() {
     problem: "",
     solution: "",
     expectedBenefit: "",
-    territoryCode: "",
+    territoryId: "",
     locationText: "",
     requested: "AUTO",
   });
@@ -51,7 +55,7 @@ function Wizard() {
   const [key] = useState(() => api.key());
   const [intentKey, setIntentKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [files, setFiles] = useState<Array<{ name: string; size: number; status: string }>>([]);
+  const [files, setFiles] = useState<Array<{ name: string; size: number; status: string; attachmentId?: string }>>([]);
   const [done, setDone] = useState<{ publicNumber: string; routing: RoutingDecision; id: string } | null>(null);
 
   useEffect(() => {
@@ -66,7 +70,7 @@ function Wizard() {
             problem: (data.problem as string) ?? "",
             solution: (data.solution as string) ?? "",
             expectedBenefit: (data.expectedBenefit as string) ?? "",
-            territoryCode: (data.territoryId as string) ?? (data.territoryCode as string) ?? "",
+            territoryId: (data.territoryId as string) ?? (data.territoryCode as string) ?? "",
             locationText: (data.locationText as string) ?? "",
             requested: ((data.requestedCategoryCode as string) ?? "AUTO") as string,
           });
@@ -147,8 +151,8 @@ function Wizard() {
 
   const saveStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data.territoryCode) {
-      setFieldErrors({ territoryCode: "Выберите территорию из справочника" });
+    if (!data.territoryId) {
+      setFieldErrors({ territoryId: "Выберите территорию из справочника" });
       focusFirstInvalid();
       return;
     }
@@ -157,7 +161,7 @@ function Wizard() {
     setError(null);
     try {
       const { data: r } = await store.patchDraft(id, {
-        territoryCode: data.territoryCode,
+        territoryId: data.territoryId,
         locationText: data.locationText,
         requestedCategoryCode: data.requested === "AUTO" ? null : data.requested,
         expectedVersion: version,
@@ -182,8 +186,9 @@ function Wizard() {
       setFiles((prev) => [...prev, row]);
       try {
         const { data: r } = await store.attach(id, f, version);
-        setVersion((r as { ideaVersion: number }).ideaVersion);
-        setFiles((prev) => prev.map((x) => (x === row ? { ...x, status: "Загружен на сервер" } : x)));
+        const rr = r as { attachment: { id: string }; ideaVersion: number };
+        setVersion(rr.ideaVersion);
+        setFiles((prev) => prev.map((x) => (x === row ? { ...x, status: "Загружен на сервер", attachmentId: rr.attachment.id } : x)));
       } catch (err) {
         const d = (err as ApiError).detail;
         const msg =
@@ -222,12 +227,13 @@ function Wizard() {
     }
   };
 
+  const selectedTerritory = catalog?.territories.find((t) => territoryValue(t) === data.territoryId);
   const previewInput: PreviewInput = {
     title: data.title,
     problem: data.problem,
     solution: data.solution,
     requestedCategoryCode: (data.requested === "AUTO" ? null : data.requested) as PreviewInput["requestedCategoryCode"],
-    territoryCode: data.territoryCode || "DEMO_SEMEY",
+    territoryCode: selectedTerritory?.code ?? data.territoryId ?? "DEMO_SEMEY",
   };
   const preview = data.title && data.problem && data.solution ? previewRoute(previewInput) : null;
 
@@ -315,14 +321,14 @@ function Wizard() {
               <label htmlFor="territory">Населённый пункт / территория</label>
               <select
                 id="territory"
-                value={data.territoryCode}
-                onChange={set("territoryCode")}
-                aria-invalid={fieldErrors.territoryCode ? "true" : undefined}
-                aria-describedby={fieldErrors.territoryCode ? "terr-h terr-e" : "terr-h"}
+                value={data.territoryId}
+                onChange={set("territoryId")}
+                aria-invalid={fieldErrors.territoryId ? "true" : undefined}
+                aria-describedby={fieldErrors.territoryId ? "terr-h terr-e" : "terr-h"}
               >
                 <option value="">— выберите из справочника —</option>
                 {catalog?.territories.map((t) => (
-                  <option key={t.code} value={t.code}>
+                  <option key={t.code} value={territoryValue(t)}>
                     {t.nameRu}
                   </option>
                 ))}
@@ -330,9 +336,9 @@ function Wizard() {
               <p className="hint" id="terr-h">
                 Справочник, а не карта.
               </p>
-              {fieldErrors.territoryCode && (
+              {fieldErrors.territoryId && (
                 <p className="field-error" id="terr-e" role="alert">
-                  {fieldErrors.territoryCode}
+                  {fieldErrors.territoryId}
                 </p>
               )}
             </div>
@@ -368,6 +374,24 @@ function Wizard() {
                     <span>
                       {f.name} · {(f.size / 1024).toFixed(0)} КБ · {f.status}
                     </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={async () => {
+                        if (f.attachmentId && id && version !== null) {
+                          try {
+                            const { data: r } = await store.deleteAttachment(id, f.attachmentId, version, api.key());
+                            setVersion((r as { version: number }).version);
+                          } catch (err) {
+                            setError(err as ApiError);
+                            return;
+                          }
+                        }
+                        setFiles((prev) => prev.filter((x) => x !== f));
+                      }}
+                    >
+                      Убрать
+                    </button>
                   </div>
                 ))}
                 <p className="muted">Осталось мест: {3 - files.length}.</p>
@@ -410,7 +434,7 @@ function Wizard() {
               <dt>
                 <strong>Территория</strong>
               </dt>
-              <dd>{catalog?.territories.find((t) => t.code === data.territoryCode)?.nameRu ?? data.territoryCode}</dd>
+              <dd>{selectedTerritory?.nameRu ?? data.territoryId}</dd>
               <dt>
                 <strong>Категория</strong>
               </dt>

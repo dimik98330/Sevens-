@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { isTransitionAllowed, REQUIRES_ASSIGNEE, REQUIRES_PUBLIC_COMMENT, REROUTE_FROM } from "@/contracts/transitions.mjs";
-import { mockStore } from "@/features/shared/mock";
+import { defaultMockMode, mockStore } from "@/features/shared/mock";
 
 // C-03: очередь и карточка сотрудника. Серверные правила (B) первичны;
 // здесь — клиентские гарды и dev-mock поведение по тем же правилам.
@@ -29,6 +29,30 @@ describe("staff transition guards (01 §12)", () => {
     expect(REROUTE_FROM.has("NEEDS_INFO")).toBe(true);
     expect(REROUTE_FROM.has("COMPLETED")).toBe(false);
     expect(REROUTE_FROM.has("REJECTED")).toBe(false);
+  });
+});
+
+describe("mock never substitutes backend unless explicitly enabled", () => {
+  it("production default is real backend; explicit flag wins", () => {
+    const env = process.env as Record<string, string | undefined>;
+    const prevFlag = env.NEXT_PUBLIC_ABAI_MOCK;
+    const prevNode = env.NODE_ENV;
+    try {
+      delete env.NEXT_PUBLIC_ABAI_MOCK;
+      env.NODE_ENV = "production";
+      expect(defaultMockMode()).toBe(false);
+      env.NODE_ENV = "test";
+      expect(defaultMockMode()).toBe(true);
+      env.NEXT_PUBLIC_ABAI_MOCK = "1";
+      env.NODE_ENV = "production";
+      expect(defaultMockMode()).toBe(true);
+      env.NEXT_PUBLIC_ABAI_MOCK = "0";
+      expect(defaultMockMode()).toBe(false);
+    } finally {
+      if (prevFlag === undefined) delete env.NEXT_PUBLIC_ABAI_MOCK;
+      else env.NEXT_PUBLIC_ABAI_MOCK = prevFlag;
+      env.NODE_ENV = prevNode;
+    }
   });
 });
 
@@ -97,11 +121,53 @@ describe("staff mock flow (dev-only)", () => {
     }
   });
 
+  it("real unassigned sentinel assignee=unassigned filters the queue", () => {
+    mockStore.login({ email: "transport@example.test", password: "x" });
+    const { data } = mockStore.staffList({ assignee: "unassigned" });
+    expect((data as Array<{ assignee: unknown }>).every((i) => !i.assignee)).toBe(true);
+  });
+
+  it("draft accepts territoryId (UUID-shaped or code) for the real boundary", () => {
+    mockStore.login({ email: "citizen1@example.test", password: "x" });
+    const created = mockStore.createDraft({ title: "Тестовая идея про дорогу", problem: "", solution: "" });
+    const id = (created.data as { id: string }).id;
+    const patched = mockStore.patchDraft(id, { territoryId: "DEMO_SEMEY", expectedVersion: 1 });
+    expect((patched.data as { version: number }).version).toBe(2);
+  });
+
+  it("attachment delete removes the file and bumps the version", () => {
+    mockStore.login({ email: "citizen1@example.test", password: "x" });
+    const created = mockStore.createDraft({ title: "Черновик с файлом" });
+    const id = (created.data as { id: string }).id;
+    const att = mockStore.attach(id, { name: "doc.pdf", size: 100, type: "application/pdf" }, 1);
+    const attId = (att.data as { attachment: { id: string } }).attachment.id;
+    const v1 = (att.data as { ideaVersion: number }).ideaVersion;
+    const del = mockStore.deleteAttachment(id, attId, v1);
+    expect((del.data as { version: number }).version).toBe(v1 + 1);
+    try {
+      mockStore.deleteAttachment(id, attId, v1 + 1);
+      expect.unreachable();
+    } catch (e) {
+      expect((e as { detail: { code: string } }).detail.code).toBe("NOT_FOUND");
+    }
+  });
+
+  it("admin queue requires organizationId like the real B (403 otherwise)", () => {
+    mockStore.login({ email: "admin@example.test", password: "x" });
+    try {
+      mockStore.staffList({});
+      expect.unreachable();
+    } catch (e) {
+      expect((e as { detail: { code: string } }).detail.code).toBe("FORBIDDEN");
+    }
+  });
+
   it("admin reroute uses organizationId from catalog and resets assignee", () => {
     mockStore.login({ email: "admin@example.test", password: "x" });
     const orgs = mockStore.adminOrganizations().data as Array<{ id: string; code: string }>;
+    const transport = orgs.find((o) => o.code === "DEMO_TRANSPORT")!;
     const triage = orgs.find((o) => o.code === "DEMO_TRIAGE")!;
-    const idea = (mockStore.staffList({}).data as Array<{ id: string; version: number; status: string }>).find(
+    const idea = (mockStore.staffList({ organizationId: transport.id }).data as Array<{ id: string; version: number; status: string }>).find(
       (i) => ["RECEIVED", "UNDER_REVIEW", "NEEDS_INFO", "IN_PROGRESS"].includes(i.status),
     )!;
     const v0 = idea.version;

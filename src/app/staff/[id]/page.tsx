@@ -21,9 +21,12 @@ interface Detail {
   solution: string;
   status: IdeaStatus;
   organizationCode: string | null;
+  organizationId?: string | null;
+  assigneeId?: string | null;
   assignee: { id: string; name: string } | null;
+  assigneeDisplayName?: string | null;
   resolutionType: string | null;
-  attachments: Array<{ id: string; name: string }>;
+  attachments: Array<{ id: string; originalName: string }>;
   routing: RouteInfo | null;
   timeline: Array<{ id: string; at: string; actor: string; text: string }>;
   comments: Array<{ id: string; visibility: "PUBLIC" | "INTERNAL"; author: string; body: string; at: string }>;
@@ -201,7 +204,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             </p>
             {idea.attachments.length > 0 && (
               <p>
-                <strong>Файлы:</strong> {idea.attachments.map((a) => a.name).join(", ")}
+                <strong>Файлы:</strong> {idea.attachments.map((a) => a.originalName).join(", ")}
               </p>
             )}
             <h2>Ответ жителю (публичный диалог)</h2>
@@ -225,12 +228,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               <h2>Маршрут</h2>
               <RouteCard route={idea.routing} />
               <p className="muted">
-                Ответственный: <strong>{idea.assignee?.name ?? "не назначен"}</strong>
+                Ответственный: <strong>{idea.assigneeDisplayName ?? idea.assignee?.name ?? "не назначен"}</strong>
               </p>
               <form onSubmit={saveAssign}>
                 <div className="field">
                   <label htmlFor="assignee">Назначить ответственного</label>
-                  <select id="assignee" name="assignee" defaultValue={idea.assignee?.id ?? ""}>
+                  <select id="assignee" name="assignee" defaultValue={idea.assigneeId ?? idea.assignee?.id ?? ""}>
                     <option value="">— без ответственного —</option>
                     {assignees.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -277,7 +280,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                         <p className="hint">«{RESULT_TYPES.ANSWER_PROVIDED}» не означает, что инфраструктура уже построена.</p>
                       </div>
                     )}
-                    {to === "UNDER_REVIEW" && !idea.assignee && (
+                    {to === "UNDER_REVIEW" && !idea.assigneeId && !idea.assignee && (
                       <p className="hint">
                         <label>
                           <input type="checkbox" name="takeOwnership" defaultChecked /> Назначить меня (атомарно с

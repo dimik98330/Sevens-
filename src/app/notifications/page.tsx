@@ -14,7 +14,7 @@ interface Notif {
   ideaId: string;
   title: string;
   readAt: string | null;
-  at: string;
+  createdAt: string;
 }
 
 export default function NotificationsPage() {
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
                 {n.title}
               </Link>
               <p className="meta">
-                {new Date(n.at).toLocaleString("ru-RU", { timeZone: "Asia/Almaty" })} {n.readAt ? "· прочитано" : "· новое"}
+                {new Date(n.createdAt).toLocaleString("ru-RU", { timeZone: "Asia/Almaty" })} {n.readAt ? "· прочитано" : "· новое"}
               </p>
             </div>
             {!n.readAt && <span className="tag">новое</span>}

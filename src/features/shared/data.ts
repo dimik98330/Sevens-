@@ -42,10 +42,20 @@ export const store = {
       ? Promise.resolve(mockStore.attach(id, { name: file.name, size: file.size, type: file.type }, expectedVersion))
       : api.upload(`/api/v1/ideas/${id}/attachments`, file, { expectedVersion: String(expectedVersion) }),
   staffList: (params: Record<string, string>) => {
-    if (useMock()) return Promise.resolve(mockStore.staffList(params));
-    const s = new URLSearchParams({ scope: "staff", ...params });
+    // B reads the unassigned sentinel as assignee=unassigned (B PASS msg 86).
+    const mapped = { ...params };
+    if (mapped.unassigned === "1") {
+      delete mapped.unassigned;
+      mapped.assignee = "unassigned";
+    }
+    if (useMock()) return Promise.resolve(mockStore.staffList(mapped));
+    const s = new URLSearchParams({ scope: "staff", ...mapped });
     return api.get(`/api/v1/ideas?${s}`);
   },
+  deleteAttachment: (id: string, attachmentId: string, expectedVersion: number, key: string) =>
+    useMock()
+      ? Promise.resolve(mockStore.deleteAttachment(id, attachmentId, expectedVersion))
+      : api.del(`/api/v1/ideas/${id}/attachments/${attachmentId}`, { expectedVersion }, { idempotencyKey: key }),
   staffGet: (id: string) =>
     useMock() ? Promise.resolve(mockStore.staffGet(id)) : api.get(`/api/v1/ideas/${id}`),
   assignees: (organizationId?: string) => {

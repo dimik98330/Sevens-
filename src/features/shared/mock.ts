@@ -11,7 +11,11 @@ import { newIdempotencyKey } from "./api-client";
 import { previewRoute } from "./route-preview";
 
 export function defaultMockMode(): boolean {
-  return (process.env.NEXT_PUBLIC_ABAI_MOCK ?? "1") !== "0";
+  // Явный флаг побеждает всегда. Без флага mock включён только вне production:
+  // финальный запуск идёт в настоящий backend и никогда не подменяется mock.
+  const flag = process.env.NEXT_PUBLIC_ABAI_MOCK;
+  if (flag !== undefined) return flag !== "0";
+  return process.env.NODE_ENV !== "production";
 }
 
 export function currentMockMode(): boolean {
@@ -19,7 +23,9 @@ export function currentMockMode(): boolean {
   const q = new URLSearchParams(window.location.search);
   if (q.has("mock")) return q.get("mock") !== "0";
   if (q.has("api")) return false;
-  return (sessionStorage.getItem("abai.useMock") ?? (process.env.NEXT_PUBLIC_ABAI_MOCK ?? "1")) !== "0";
+  const stored = sessionStorage.getItem("abai.useMock");
+  if (stored !== null) return stored !== "0";
+  return defaultMockMode();
 }
 
 // Срез каталога: территории/организации/правила demo-seed (syntheticOnly).
@@ -71,7 +77,7 @@ export interface MockIdea {
   updatedAt: string;
   resolutionType: string | null;
   routing: RoutingDecision | null;
-  attachments: Array<{ id: string; name: string; size: number; mime: string }>;
+  attachments: Array<{ id: string; originalName: string; mime: string; sizeBytes: number; createdAt: string }>;
   timeline: Array<{ id: string; at: string; actor: string; text: string }>;
   comments: Array<{ id: string; visibility: "PUBLIC" | "INTERNAL"; author: string; body: string; at: string }>;
 }
@@ -382,9 +388,12 @@ class Store {
     if (it!.status !== "DRAFT") fail(409, "INVALID_TRANSITION", "Черновик уже отправлен");
     if (body.expectedVersion !== it!.version)
       fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
-    for (const k of ["title", "problem", "solution", "expectedBenefit", "requestedCategoryCode", "territoryCode", "locationText"] as const) {
+    for (const k of ["title", "problem", "solution", "expectedBenefit", "requestedCategoryCode", "locationText"] as const) {
       if (k in body) (it as unknown as Record<string, unknown>)[k] = body[k];
     }
+    // Dev mapping: настоящий B берёт territoryId UUID; mock принимает код
+    // (каталоги пока без id — DTO-REQUEST msg 87).
+    if ("territoryId" in body) it!.territoryCode = body.territoryId as string;
     it!.version += 1;
     it!.updatedAt = now();
     return { data: { id: it!.id, version: it!.version }, meta: { requestId: reqId() } };
@@ -458,7 +467,7 @@ class Store {
     if (file.size > 5 * 1024 * 1024) fail(413, "FILE_TOO_LARGE", "Файл больше 5 MiB");
     if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type))
       fail(415, "UNSUPPORTED_FILE_TYPE", "Этот формат не поддерживается. Выберите JPG, PNG, WebP или PDF");
-    const att = { id: `a-${Date.now()}`, name: file.name, size: file.size, mime: file.type };
+    const att = { id: `a-${Date.now()}`, originalName: file.name, mime: file.type, sizeBytes: file.size, createdAt: now() };
     it!.attachments.push(att);
     it!.version += 1;
     return { data: { attachment: att, ideaVersion: it!.version }, meta: { requestId: reqId() } };
@@ -487,11 +496,24 @@ class Store {
     return { data: it, meta: { requestId: reqId() } };
   }
 
+  deleteAttachment(id: string, attachmentId: string, expectedVersion: number) {
+    const me = this.needAuth();
+    const it = this.ideas.find((x) => x.id === id);
+    if (!it || it.authorId !== me.id) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    if (expectedVersion !== it!.version)
+      fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
+    const ix = it!.attachments.findIndex((a) => a.id === attachmentId);
+    if (ix < 0) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
+    it!.attachments.splice(ix, 1);
+    it!.version += 1;
+    return { data: { id: it!.id, version: it!.version }, meta: { requestId: reqId() } };
+  }
+
   notifications() {
     this.needAuth();
     return [
-      { id: "n1", ideaId: "idea-003", title: "Сотрудник задал уточняющий вопрос по идее ABAI-2026-000096", readAt: null as string | null, at: now() },
-      { id: "n2", ideaId: "idea-004", title: "Статус идеи ABAI-2026-000088: Завершена", readAt: null as string | null, at: now() },
+      { id: "n1", ideaId: "idea-003", kind: "NEEDS_INFO", title: "Сотрудник задал уточняющий вопрос по идее ABAI-2026-000096", readAt: null as string | null, createdAt: now() },
+      { id: "n2", ideaId: "idea-004", kind: "STATUS", title: "Статус идеи ABAI-2026-000088: Завершена", readAt: null as string | null, createdAt: now() },
     ];
   }
 
@@ -503,16 +525,24 @@ class Store {
   staffList(params: Record<string, string | undefined>) {
     const me = this.needAuth();
     if (me.role === "CITIZEN") fail(403, "FORBIDDEN", "Страница недоступна или у вас нет доступа к этой идее");
-    const myCode = CODE_BY_ORG_ID[me.organizationId ?? ""];
-    let list = this.ideas.filter((x) => x.status !== "DRAFT" && (me.role === "ADMIN" || x.organizationCode === myCode));
+    // Как настоящий B: STAFF видит свою организацию, ADMIN — выбранную (без неё 403).
+    let scopeCode: string | undefined;
+    if (me.role === "ADMIN") {
+      if (!params.organizationId) fail(403, "FORBIDDEN", "Укажите организацию");
+      scopeCode = CODE_BY_ORG_ID[params.organizationId!];
+      if (!scopeCode) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { organizationId: "Организация только из справочника" });
+    } else {
+      scopeCode = CODE_BY_ORG_ID[me.organizationId ?? ""];
+    }
+    let list = this.ideas.filter((x) => x.status !== "DRAFT" && x.organizationCode === scopeCode);
     if (params.category) list = list.filter((x) => x.effectiveCategoryCode === params.category);
     if (params.status) list = list.filter((x) => x.status === params.status);
     if (params.q) {
       const s = params.q.toLowerCase();
       list = list.filter((x) => `${x.title} ${x.problem} ${x.solution} ${x.publicNumber ?? ""}`.toLowerCase().includes(s));
     }
-    if (params.unassigned === "1") list = list.filter((x) => !x.assignee);
-    if (params.assignee) list = list.filter((x) => x.assignee?.id === params.assignee);
+    if (params.unassigned === "1" || params.assignee === "unassigned") list = list.filter((x) => !x.assignee);
+    else if (params.assignee) list = list.filter((x) => x.assignee?.id === params.assignee);
     const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
     const pageSize = Math.min(100, Math.max(1, parseInt(params.pageSize ?? "20", 10) || 20));
     const total = list.length;

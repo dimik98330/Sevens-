@@ -29,8 +29,9 @@ interface Detail {
   status: IdeaStatus;
   organizationCode: string | null;
   assignee: { id: string; name: string } | null;
+  assigneeDisplayName?: string | null;
   resolutionType: string | null;
-  attachments: Array<{ id: string; name: string }>;
+  attachments: Array<{ id: string; originalName: string }>;
   routing: RouteInfo | null;
   timeline: Array<{ id: string; at: string; actor: string; text: string }>;
   comments: Comment[];
@@ -109,7 +110,7 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
               <h2>Сейчас происходит</h2>
               <p>
                 Направление: <strong>{orgName(idea.organizationCode)}</strong> · Ответственный:{" "}
-                <strong>{idea.assignee?.name ?? "не назначен"}</strong>
+                <strong>{idea.assigneeDisplayName ?? idea.assignee?.name ?? "не назначен"}</strong>
               </p>
               <p className="muted">
                 Следующий шаг:{" "}
@@ -130,7 +131,7 @@ export default function IdeaDetailPage({ params }: { params: Promise<{ id: strin
               </p>
               {idea.attachments.length > 0 && (
                 <p>
-                  <strong>Материалы:</strong> {idea.attachments.map((a) => a.name).join(", ")}
+                  <strong>Материалы:</strong> {idea.attachments.map((a) => a.originalName).join(", ")}
                 </p>
               )}
             </section>
