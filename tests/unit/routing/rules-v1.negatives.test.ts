@@ -2,8 +2,8 @@
 // token boundaries, normalization). Prompt-injection text is data: the
 // engine has no tools, no status writes and no reason to obey it.
 import { describe, expect, it } from 'vitest';
-import { routeIdea } from '../../../src/domain/routing/rules.js';
-import { RoutingInputError, type CatalogSnapshot } from '../../../src/domain/routing/types.js';
+import { routeIdea } from '../../../src/domain/routing/rules';
+import { RoutingInputError, type CatalogSnapshot } from '../../../src/domain/routing/types';
 
 const catalog: CatalogSnapshot = {
   ruleVersion: 'rules-v1',

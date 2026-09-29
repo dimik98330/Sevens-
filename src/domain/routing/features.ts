@@ -4,7 +4,7 @@
 // limitation of rules-v1, and such ideas fall back to LOW/TRIAGE instead of
 // a confident wrong route. Each feature counts ONCE per whole document.
 
-import type { CategoryCode } from './types.js';
+import type { CategoryCode } from './types';
 
 export interface RoutingFeature {
   id: string;

@@ -8,7 +8,7 @@ import {
   assertEvidenceConsistent,
   loadCases,
   loadCatalogFromSeed,
-} from './fixture-harness.js';
+} from './fixture-harness';
 
 const catalog = loadCatalogFromSeed();
 const cases = loadCases('../../../fixtures/routing-cases.json');

@@ -3,12 +3,12 @@
 // SMART_CITY or warnings). Not a *.test.ts file: not picked up by vitest.
 import { readFileSync } from 'node:fs';
 import { expect } from 'vitest';
-import { routeIdea } from '../../../src/domain/routing/rules.js';
+import { routeIdea } from '../../../src/domain/routing/rules';
 import type {
   CatalogSnapshot,
   CategoryCode,
   RoutingContext,
-} from '../../../src/domain/routing/types.js';
+} from '../../../src/domain/routing/types';
 
 export interface FixtureCase {
   id: string;

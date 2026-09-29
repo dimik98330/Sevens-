@@ -293,7 +293,8 @@ export function routeIdea(
   if (!digitalFound) reasonCodes.push('DIGITAL_COMPONENT_NOT_CLEAR');
 
   const tagCategories = ranked.filter((s) => s.code !== effective).map((s) => s.code);
-  const tags = [...tagCategories];
+  // string[], not CategoryCode[]: SMART_CITY is a tag, not a category.
+  const tags: string[] = [...tagCategories];
   if (digitalFound) tags.push('SMART_CITY');
 
   const scoresOut: Partial<Record<CategoryCode, number>> = {};

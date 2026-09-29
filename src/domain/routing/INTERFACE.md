@@ -13,7 +13,7 @@ anywhere in this module.
 ## B calls
 
 ```ts
-import { routeIdea, manualReroute } from '@/domain/routing/rules.js';
+import { routeIdea, manualReroute } from '@/domain/routing/rules';
 
 const decision = routeIdea(
   {

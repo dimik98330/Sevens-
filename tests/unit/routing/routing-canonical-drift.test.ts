@@ -4,7 +4,7 @@
 // canonical enum, so the mirror cannot silently diverge.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CATEGORY_CODES } from '../../../src/domain/routing/features.js';
+import { CATEGORY_CODES } from '../../../src/domain/routing/features';
 
 function canonicalCategoryCodes(): string[] {
   const source = readFileSync(new URL('../../../src/contracts/index.ts', import.meta.url), 'utf-8');

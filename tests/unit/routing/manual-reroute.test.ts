@@ -2,8 +2,8 @@
 // Organization comes from the catalog only; the reason is validated here
 // and travels in its own field (never embedded into explanation text).
 import { describe, expect, it } from 'vitest';
-import { manualReroute } from '../../../src/domain/routing/rules.js';
-import { RoutingInputError, type CatalogSnapshot } from '../../../src/domain/routing/types.js';
+import { manualReroute } from '../../../src/domain/routing/rules';
+import { RoutingInputError, type CatalogSnapshot } from '../../../src/domain/routing/types';
 
 const catalog: CatalogSnapshot = {
   ruleVersion: 'rules-v1',
