@@ -62,7 +62,14 @@ function Queue() {
           pageSize: String(PAGE_SIZE),
         };
         // B 403s без organizationId: STAFF — своя, ADMIN — выбранная (msg 86).
+        // Админ без выбранной организации не запрашивает очередь вообще:
+        // подсказка вместо ошибки 403 на первом экране.
         const oid = params.get("organizationId") ?? (user?.role === "STAFF" ? (user.organizationId ?? "") : "");
+        if (!oid && user?.role === "ADMIN") {
+          setRows([]);
+          setTotal(0);
+          return;
+        }
         if (oid) p.organizationId = oid;
         const { data, meta } = await store.staffList(p);
         setRows(data as Row[]);
@@ -186,7 +193,7 @@ function Queue() {
       <div aria-live="polite">
         {error && <ErrorNotice error={error} onRetry={() => load(page)} />}
         {rows === null && <Skeleton lines={4} />}
-        {rows !== null && !rows.length && !error && (
+        {rows !== null && !rows.length && !error && !(isAdmin && !orgId) && (
           <EmptyState
             title="Ничего не найдено"
             text={filtered ? ru.emptyFilter : ru.emptyQueue}

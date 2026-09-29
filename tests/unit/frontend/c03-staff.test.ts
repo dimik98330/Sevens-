@@ -143,7 +143,7 @@ describe("staff mock flow (dev-only)", () => {
     const attId = (att.data as { attachment: { id: string } }).attachment.id;
     const v1 = (att.data as { ideaVersion: number }).ideaVersion;
     const del = mockStore.deleteAttachment(id, attId, v1);
-    expect((del.data as { version: number }).version).toBe(v1 + 1);
+    expect((del.data as { ideaVersion: number }).ideaVersion).toBe(v1 + 1);
     try {
       mockStore.deleteAttachment(id, attId, v1 + 1);
       expect.unreachable();

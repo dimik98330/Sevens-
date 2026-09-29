@@ -41,6 +41,7 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 const RESULT_TYPES = ru.resultTypes as Record<string, string>;
+const CATEGORIES = ru.categories as Record<string, string>;
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -60,10 +61,15 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       setError(null);
       try {
         const { data } = await store.staffGet(id);
-        setIdea(data as Detail);
+        const detail = data as Detail;
+        setIdea(detail);
         if (keepForm) setKeep(keepForm);
         try {
-          const { data: a } = await store.assignees();
+          // Настоящий B требует organizationId для assignees (иначе 403):
+          // сотрудник — своя организация, админ — организация карточки.
+          const orgId =
+            user?.role === "STAFF" ? (user.organizationId ?? undefined) : (detail.organizationId ?? undefined);
+          const { data: a } = await store.assignees(orgId);
           setAssignees(a as Array<{ id: string; displayName: string }>);
         } catch {
           setAssignees([]);
@@ -164,10 +170,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
     if (!idea) return;
     const form = e.currentTarget;
     const organizationId = (form.elements.namedItem("org") as HTMLSelectElement).value;
+    const effectiveCategoryCode = (form.elements.namedItem("category") as HTMLSelectElement).value;
     const reason = (form.elements.namedItem("reason") as HTMLTextAreaElement).value;
     setRrError(null);
     try {
-      await store.reroute(id, { organizationId, reason, expectedVersion: idea.version }, api.key());
+      // Настоящий B требует effectiveCategoryCode (движок D валидирует категорию).
+      await store.reroute(id, { organizationId, effectiveCategoryCode, reason, expectedVersion: idea.version }, api.key());
       load();
     } catch (err) {
       setRrError(err as ApiError);
@@ -321,6 +329,22 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
               <div className="card">
                 <h2>Исправление маршрута (админ)</h2>
                 <form onSubmit={saveReroute}>
+                  <div className="field">
+                    <label htmlFor="category">Тема (категория) после перенаправления</label>
+                    <select
+                      id="category"
+                      name="category"
+                      required
+                      defaultValue={idea.routing?.effectiveCategoryCode ?? ""}
+                    >
+                      <option value="">— выберите тему —</option>
+                      {Object.entries(CATEGORIES).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name as string}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="field">
                     <label htmlFor="org">Новая организация (из справочника)</label>
                     <select id="org" name="org" defaultValue={orgs.find((o) => o.code === idea.organizationCode)?.id ?? ""}>

@@ -184,7 +184,7 @@ function Wizard() {
       const row = { name: f.name, size: f.size, status: "Загрузка…" };
       setFiles((prev) => [...prev, row]);
       try {
-        const { data: r } = await store.attach(id, f, version);
+        const { data: r } = await store.attach(id, f, version, api.key());
         const rr = r as { attachment: { id: string }; ideaVersion: number };
         setVersion(rr.ideaVersion);
         setFiles((prev) => prev.map((x) => (x === row ? { ...x, status: "Загружен на сервер", attachmentId: rr.attachment.id } : x)));
@@ -380,7 +380,9 @@ function Wizard() {
                         if (f.attachmentId && id && version !== null) {
                           try {
                             const { data: r } = await store.deleteAttachment(id, f.attachmentId, version, api.key());
-                            setVersion((r as { version: number }).version);
+                            // Настоящий B отвечает {ideaVersion} (C-04 real DTO).
+                            const nv = (r as { ideaVersion?: number }).ideaVersion;
+                            if (typeof nv === "number") setVersion(nv);
                           } catch (err) {
                             setError(err as ApiError);
                             return;

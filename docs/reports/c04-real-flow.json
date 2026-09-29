@@ -1,0 +1,117 @@
+{
+  "base": "http://localhost:18081",
+  "ideaId": "4f07976a-b58f-462e-ac05-99c510706450",
+  "publicNumber": "ABAI-2026-000002",
+  "evidence": [
+    {
+      "step": "register citizen",
+      "ok": true,
+      "detail": "http=201 nested-user=true"
+    },
+    {
+      "step": "catalogs territory id UUID",
+      "ok": true,
+      "detail": "id=5abbde34-eafa-5253-a6de-2e804e2d90d3"
+    },
+    {
+      "step": "create draft territoryId",
+      "ok": true,
+      "detail": "http=201 v=1"
+    },
+    {
+      "step": "patch draft",
+      "ok": true,
+      "detail": "http=200 v=2"
+    },
+    {
+      "step": "attach png 201",
+      "ok": true,
+      "detail": "http=201"
+    },
+    {
+      "step": "delete attachment ideaVersion",
+      "ok": true,
+      "detail": "http=200 v=4"
+    },
+    {
+      "step": "re-attach png",
+      "ok": true,
+      "detail": "http=201"
+    },
+    {
+      "step": "submit",
+      "ok": true,
+      "detail": "http=200 pub=ABAI-2026-000002 cat=OTHER"
+    },
+    {
+      "step": "mine lists idea",
+      "ok": true,
+      "detail": "http=200"
+    },
+    {
+      "step": "detail real ids",
+      "ok": true,
+      "detail": "terr-ok=true org=DEMO_TRIAGE cat=OTHER"
+    },
+    {
+      "step": "staff login nested+org",
+      "ok": true,
+      "detail": "org-match=true"
+    },
+    {
+      "step": "staff queue unassigned+org sees idea",
+      "ok": true,
+      "detail": "http=200"
+    },
+    {
+      "step": "assign",
+      "ok": false,
+      "detail": "http=503 v=6"
+    },
+    {
+      "step": "status UNDER_REVIEW",
+      "ok": false,
+      "detail": "http=400 v=6"
+    },
+    {
+      "step": "public comment",
+      "ok": false,
+      "detail": "http=201"
+    },
+    {
+      "step": "status NEEDS_INFO",
+      "ok": false,
+      "detail": "http=409 v=6"
+    },
+    {
+      "step": "citizen notified",
+      "ok": true,
+      "detail": "n=2 kind=PUBLIC_REPLY"
+    },
+    {
+      "step": "notification read 204",
+      "ok": true,
+      "detail": "http=204"
+    },
+    {
+      "step": "clarification",
+      "ok": false,
+      "detail": "http=409"
+    },
+    {
+      "step": "reroute by org UUID",
+      "ok": true,
+      "detail": "http=200"
+    },
+    {
+      "step": "reroute reset assignee",
+      "ok": true,
+      "detail": "assignee=null"
+    },
+    {
+      "step": "stale version 409",
+      "ok": true,
+      "detail": "http=409"
+    }
+  ]
+}

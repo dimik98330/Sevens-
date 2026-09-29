@@ -516,7 +516,8 @@ class Store {
     if (ix < 0) fail(404, "NOT_FOUND", "Страница недоступна или у вас нет доступа к этой идее");
     it!.attachments.splice(ix, 1);
     it!.version += 1;
-    return { data: { id: it!.id, version: it!.version }, meta: { requestId: reqId() } };
+    // Форма как у настоящего B: {ideaVersion}, не {version} (C-04 real DTO).
+    return { data: { id: it!.id, ideaVersion: it!.version }, meta: { requestId: reqId() } };
   }
 
   notifications() {
