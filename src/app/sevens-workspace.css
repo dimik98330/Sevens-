@@ -12,7 +12,8 @@
   --border: #dce2d7;
   --workspace-forest: #142725;
   --workspace-peach: #edac83;
-  grid-template-columns: 264px minmax(0,1fr);
+  --workspace-sidebar-width: 264px;
+  grid-template-columns: var(--workspace-sidebar-width) minmax(0,1fr);
   background: var(--bg);
   color: var(--text);
   font-family: "Manrope Variable", "Inter Variable", sans-serif;
@@ -20,6 +21,22 @@
 .workspace-body { min-width: 0; }
 .workspace .workspace-content { padding: clamp(28px,3vw,64px) clamp(28px,3.1vw,76px) 96px; }
 .workspace .workspace-nav { gap: 0; padding: 28px 18px 20px; background: var(--workspace-forest); border-right: 1px solid #ffffff0a; overflow-y: auto; scrollbar-width: thin; }
+@media (min-width: 981px) {
+  /* Outer page padding extends past the workspace; keep navigation anchored
+     to the viewport instead of the sticky element's shorter parent. */
+  .workspace .workspace-nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--workspace-sidebar-width);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    z-index: 20;
+    overscroll-behavior-y: contain;
+  }
+  .workspace .workspace-nav > * { flex-shrink: 0; }
+  .workspace-body { grid-column: 2; }
+}
 .workspace-sidebar-heading { padding: 0 8px 20px; margin-bottom: 20px; }
 .workspace .workspace-brand { padding: 0!important; margin: 0!important; min-height: 45px; border-radius: 8px; }
 .workspace .workspace-brand .workspace-wordmark { --sevens-logo-ink: #f4f3ed; --sevens-logo-accent: #edac83; width: 184px; max-width: 100%; height: auto; }
@@ -232,7 +249,7 @@ body:has(.workspace) .sevens-assistant { font-family: "Manrope Variable", "Inter
 .workspace .back-link { min-height: 44px; color: #526a4f; font-size: 12px; }
 .workspace .text-link { color: #9a4d2f; min-height: 44px; }
 @media (min-width: 1700px) {
-  .workspace { grid-template-columns: 280px minmax(0,1fr); }
+  .workspace { --workspace-sidebar-width: 280px; }
   .workspace .my-list-layout.cabinet-results { grid-template-columns: minmax(0,1fr) 360px; gap: 32px; }
   .cabinet-idea { padding: 27px; }
   .cabinet-idea h2 { font-size: 22px; }
@@ -241,7 +258,7 @@ body:has(.workspace) .sevens-assistant { font-family: "Manrope Variable", "Inter
   .cabinet-preview { padding: 26px; }
 }
 @media (max-width: 1200px) {
-  .workspace { grid-template-columns: 236px minmax(0,1fr); }
+  .workspace { --workspace-sidebar-width: 236px; }
   .workspace .workspace-content { padding: 30px 26px 90px; }
   .workspace .workspace-brand .workspace-wordmark { width: 170px; }
   .workspace .my-list-layout.cabinet-results { grid-template-columns: minmax(0,1fr); }

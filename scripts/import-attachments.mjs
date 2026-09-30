@@ -10,7 +10,8 @@ if (!process.env.DATABASE_URL || !process.env.UPLOAD_DIR) {
   throw new Error('Set DATABASE_URL and the absolute source UPLOAD_DIR');
 }
 if (!path.isAbsolute(process.env.UPLOAD_DIR)) throw new Error('UPLOAD_DIR must be absolute');
-const db = await openDatabase();
+// Offline integrity reads may transfer multi-megabyte blobs over a slow link.
+const db = await openDatabase({ queryTimeoutMs: 60000, statementTimeoutMs: 60000 });
 let imported = 0;
 let verified = 0;
 try {
