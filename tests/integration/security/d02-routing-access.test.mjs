@@ -68,7 +68,7 @@ async function submitIdea(auth, fields) {
 
 before(async () => {
   process.env.UPLOAD_DIR = mkdtempSync(path.join(tmpdir(), 'd02-uploads-'));
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await migrate(db);
   await seed(db, { demoPassword: SEED_PASSWORD });
   territoryId = (await db.query(`SELECT id FROM territories WHERE code='DEMO_SEMEY'`)).rows[0].id;

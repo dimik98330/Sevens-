@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 1,
+  "syntheticOnly": true,
+  "instructions": [
+    "Resolve seedKey to deterministic UUIDs or a persistent mapping; do not use seedKey as an API UUID.",
+    "Create users with a password hash from DEMO_PASSWORD; never commit a real password.",
+    "Create histories and comments by valid domain transitions to targetScenario; do not insert a terminal status without events.",
+    "Upsert catalogs and missing seed identities; do not reset existing submitted ideas on repeated seed.",
+    "No real government delivery, verified organization competences or real personal data."
+  ],
+  "region": {
+    "code": "ABAI",
+    "nameRu": "Область Абай"
+  },
+  "territories": [
+    {
+      "code": "DEMO_SEMEY",
+      "nameRu": "Семей — демонстрационная территория",
+      "kind": "LOCALITY",
+      "isDemo": true
+    },
+    {
+      "code": "DEMO_LOCALITY",
+      "nameRu": "Демо-населённый пункт",
+      "kind": "LOCALITY",
+      "isDemo": true
+    }
+  ],
+  "categories": [
+    {
+      "code": "TRANSPORT",
+      "nameRu": "Транспорт"
+    },
+    {
+      "code": "UTILITIES",
+      "nameRu": "ЖКХ"
+    },
+    {
+      "code": "EDUCATION",
+      "nameRu": "Образование"
+    },
+    {
+      "code": "ECOLOGY",
+      "nameRu": "Экология"
+    },
+    {
+      "code": "SAFETY",
+      "nameRu": "Безопасность"
+    },
+    {
+      "code": "HEALTH",
+      "nameRu": "Здравоохранение"
+    },
+    {
+      "code": "TOURISM",
+      "nameRu": "Туризм и культура"
+    },
+    {
+      "code": "ACCESSIBILITY",
+      "nameRu": "Доступная среда"
+    },
+    {
+      "code": "OTHER",
+      "nameRu": "Другое"
+    }
+  ],
+  "organizations": [
+    {
+      "code": "DEMO_TRANSPORT",
+      "name": "Демо: направление транспорта",
+      "isTriage": false,
+      "isDemo": true,
+      "active": true
+    },
+    {
+      "code": "DEMO_UTILITIES",
+      "name": "Демо: направление ЖКХ",
+      "isTriage": false,
+      "isDemo": true,
+      "active": true
+    },
+    {
+      "code": "DEMO_ECOLOGY",
+      "name": "Демо: направление экологии",
+      "isTriage": false,
+      "isDemo": true,
+      "active": true
+    },
+    {
+      "code": "DEMO_SOCIAL",
+      "name": "Демо: социальное направление",
+      "isTriage": false,
+      "isDemo": true,
+      "active": true
+    },
+    {
+      "code": "DEMO_SAFETY",
+      "name": "Демо: направление безопасности",
+      "isTriage": false,
+      "isDemo": true,
+      "active": true
+    },
+    {
+      "code": "DEMO_TRIAGE",
+      "name": "Демо: центр цифровых инициатив",
+      "isTriage": true,
+      "isDemo": true,
+      "active": true
+    }
+  ],
+  "routingRules": [
+    {
+      "categoryCode": "TRANSPORT",
+      "organizationCode": "DEMO_TRANSPORT",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "UTILITIES",
+      "organizationCode": "DEMO_UTILITIES",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "EDUCATION",
+      "organizationCode": "DEMO_SOCIAL",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "ECOLOGY",
+      "organizationCode": "DEMO_ECOLOGY",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "SAFETY",
+      "organizationCode": "DEMO_SAFETY",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "HEALTH",
+      "organizationCode": "DEMO_SOCIAL",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "TOURISM",
+      "organizationCode": "DEMO_SOCIAL",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "ACCESSIBILITY",
+      "organizationCode": "DEMO_SOCIAL",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    },
+    {
+      "categoryCode": "OTHER",
+      "organizationCode": "DEMO_TRIAGE",
+      "territoryCode": null,
+      "priority": 100,
+      "version": "rules-v1",
+      "active": true
+    }
+  ],
+  "users": [
+    {
+      "seedKey": "citizen1",
+      "displayName": "Демо-житель 1",
+      "email": "citizen1@example.test",
+      "role": "CITIZEN"
+    },
+    {
+      "seedKey": "citizen2",
+      "displayName": "Демо-житель 2",
+      "email": "citizen2@example.test",
+      "role": "CITIZEN"
+    },
+    {
+      "seedKey": "admin",
+      "displayName": "Демо-администратор",
+      "email": "admin@example.test",
+      "role": "ADMIN"
+    },
+    {
+      "seedKey": "staff_transport",
+      "displayName": "Демо-сотрудник: transport",
+      "email": "transport@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_TRANSPORT"
+    },
+    {
+      "seedKey": "staff_utilities",
+      "displayName": "Демо-сотрудник: utilities",
+      "email": "utilities@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_UTILITIES"
+    },
+    {
+      "seedKey": "staff_ecology",
+      "displayName": "Демо-сотрудник: ecology",
+      "email": "ecology@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_ECOLOGY"
+    },
+    {
+      "seedKey": "staff_social",
+      "displayName": "Демо-сотрудник: social",
+      "email": "social@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_SOCIAL"
+    },
+    {
+      "seedKey": "staff_safety",
+      "displayName": "Демо-сотрудник: safety",
+      "email": "safety@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_SAFETY"
+    },
+    {
+      "seedKey": "staff_triage",
+      "displayName": "Демо-сотрудник: triage",
+      "email": "triage@example.test",
+      "role": "STAFF",
+      "organizationCode": "DEMO_TRIAGE"
+    }
+  ],
+  "ideas": [
+    {
+      "seedKey": "demo_idea_01",
+      "authorKey": "citizen1",
+      "title": "Умные светофоры рядом со школой",
+      "problem": "Возле школы дорога требует внимания к безопасности детей. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Установить умные светофоры и датчики загруженности дороги. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "RECEIVED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "TRANSPORT",
+        "organizationCode": "DEMO_TRANSPORT",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "EDUCATION",
+          "SAFETY",
+          "SMART_CITY"
+        ]
+      }
+    },
+    {
+      "seedKey": "demo_idea_02",
+      "authorKey": "citizen2",
+      "title": "Контроль утечки воды",
+      "problem": "Утечки воды обнаруживаются поздно. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Поставить датчики и счетчики воды для уведомлений. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "UNDER_REVIEW",
+      "expectedRouting": {
+        "effectiveCategoryCode": "UTILITIES",
+        "organizationCode": "DEMO_UTILITIES",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_utilities"
+    },
+    {
+      "seedKey": "demo_idea_03",
+      "authorKey": "citizen1",
+      "title": "Показатели качества воздуха",
+      "problem": "Жители хотят видеть качество воздуха. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Добавить датчики качества воздуха и приложение. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "IN_PROGRESS",
+      "expectedRouting": {
+        "effectiveCategoryCode": "ECOLOGY",
+        "organizationCode": "DEMO_ECOLOGY",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_ecology"
+    },
+    {
+      "seedKey": "demo_idea_04",
+      "authorKey": "citizen2",
+      "title": "Электронный дневник",
+      "problem": "Школа хочет удобный электронный дневник. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Предлагаем приложение для учебных уведомлений. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "NEEDS_INFO",
+      "expectedRouting": {
+        "effectiveCategoryCode": "EDUCATION",
+        "organizationCode": "DEMO_SOCIAL",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_social",
+      "publicComment": "Уточните, какие именно действия должен поддерживать предлагаемый сервис и кому они будут полезны."
+    },
+    {
+      "seedKey": "demo_idea_05",
+      "authorKey": "citizen1",
+      "title": "Запись к врачу",
+      "problem": "Очередь в поликлинике требует понятной организации. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Добавить онлайн запись к врачу. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "COMPLETED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "HEALTH",
+        "organizationCode": "DEMO_SOCIAL",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_social",
+      "resolutionType": "ANSWER_PROVIDED",
+      "publicComment": "Предоставлен демонстрационный итоговый ответ: для дальнейшего обсуждения нужно уточнить состав функций и критерий результата."
+    },
+    {
+      "seedKey": "demo_idea_06",
+      "authorKey": "citizen2",
+      "title": "Цифровой аудиогид",
+      "problem": "Музейный гид должен быть доступнее посетителям. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Предлагаем приложение и аудиогид. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "RECEIVED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "TOURISM",
+        "organizationCode": "DEMO_SOCIAL",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      }
+    },
+    {
+      "seedKey": "demo_idea_07",
+      "authorKey": "citizen1",
+      "title": "Карта доступности",
+      "problem": "Жителям нужна карта доступности. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Сделать приложение с информацией. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "UNDER_REVIEW",
+      "expectedRouting": {
+        "effectiveCategoryCode": "ACCESSIBILITY",
+        "organizationCode": "DEMO_SOCIAL",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_social"
+    },
+    {
+      "seedKey": "demo_idea_08",
+      "authorKey": "citizen2",
+      "title": "Тревожная кнопка",
+      "problem": "Безопасность требует удобного сигнала помощи. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Тревожная кнопка и приложение помогут передавать сигнал. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "IN_PROGRESS",
+      "expectedRouting": {
+        "effectiveCategoryCode": "SAFETY",
+        "organizationCode": "DEMO_SAFETY",
+        "mode": "ASSIGNED",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "SMART_CITY"
+        ]
+      },
+      "assigneeKey": "staff_safety"
+    },
+    {
+      "seedKey": "demo_idea_09",
+      "authorKey": "citizen1",
+      "title": "Сделать регион удобнее",
+      "problem": "Есть идея улучшения повседневной жизни. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Подробности пока необходимо обсудить. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "RECEIVED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "OTHER",
+        "organizationCode": "DEMO_TRIAGE",
+        "mode": "TRIAGE",
+        "confidenceBand": "LOW",
+        "requiredReasonCodes": [
+          "DIGITAL_COMPONENT_NOT_CLEAR"
+        ]
+      }
+    },
+    {
+      "seedKey": "demo_idea_10",
+      "authorKey": "citizen2",
+      "title": "Ремонт помещения школы",
+      "problem": "В школе требуется обновить помещение. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Предлагаем обычный ремонт. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": "EDUCATION",
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "UNDER_REVIEW",
+      "expectedRouting": {
+        "effectiveCategoryCode": "EDUCATION",
+        "organizationCode": "DEMO_SOCIAL",
+        "mode": "ASSIGNED",
+        "confidenceBand": "LOW",
+        "requiredReasonCodes": [
+          "DIGITAL_COMPONENT_NOT_CLEAR"
+        ]
+      },
+      "assigneeKey": "staff_social"
+    },
+    {
+      "seedKey": "demo_idea_11",
+      "authorKey": "citizen1",
+      "title": "Светофоры и качество воздуха",
+      "problem": "Нужны светофоры и качество воздуха в одном проекте. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Предлагаем приложение для двух разных задач. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": null,
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "RECEIVED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "OTHER",
+        "organizationCode": "DEMO_TRIAGE",
+        "mode": "TRIAGE",
+        "confidenceBand": "MEDIUM",
+        "requiredTags": [
+          "TRANSPORT",
+          "ECOLOGY",
+          "SMART_CITY"
+        ]
+      }
+    },
+    {
+      "seedKey": "demo_idea_12",
+      "authorKey": "citizen2",
+      "title": "Умные светофоры на дороге",
+      "problem": "Дорога требует организации движения. Это синтетический пример для проверки интерфейса, а не сообщение о реальном объекте.",
+      "solution": "Установить светофоры и датчики. Детали и ожидаемые результаты следует согласовать на этапе рассмотрения.",
+      "requestedCategoryCode": "ECOLOGY",
+      "territoryCode": "DEMO_SEMEY",
+      "isDemo": true,
+      "targetScenario": "RECEIVED",
+      "expectedRouting": {
+        "effectiveCategoryCode": "ECOLOGY",
+        "organizationCode": "DEMO_TRIAGE",
+        "mode": "TRIAGE",
+        "confidenceBand": "HIGH",
+        "requiredTags": [
+          "TRANSPORT"
+        ],
+        "requiredReasonCodes": [
+          "CATEGORY_CONFLICT"
+        ]
+      }
+    }
+  ]
+}

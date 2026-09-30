@@ -1,0 +1,122 @@
+/* Sevens identity and navigation, shared by the public site and mobile cabinet. */
+.sevens-header {
+  --header-bg: #f4f3ed;
+  --header-text: #18372d;
+  --header-muted: #526b5b;
+  --header-border: #cfd9cd;
+  --header-well: #e9ede4;
+  --header-hover: #dde5d9;
+  --sevens-logo-ink: #18372d;
+  --sevens-logo-accent: #c27a51;
+  position: relative;
+  z-index: 40;
+  background: var(--header-bg);
+  color: var(--header-text);
+  border-bottom: 1px solid var(--header-border);
+  font-family: "Manrope Variable", "Inter Variable", sans-serif;
+}
+.sevens-header[data-page=home] {
+  --header-bg: #172e28;
+  --header-text: #f5f1e8;
+  --header-muted: #bfd0c1;
+  --header-border: #ffffff1c;
+  --header-well: #ffffff07;
+  --header-hover: #ffffff10;
+  --sevens-logo-ink: #f5f1e8;
+  --sevens-logo-accent: #edac83;
+  background: var(--header-bg);
+  color: var(--header-text);
+  border-color: var(--header-border);
+}
+.sevens-header-inner { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; width: 100%; min-height: 104px; padding: 18px clamp(24px,5vw,112px); }
+.sevens-brand-group { display: flex; align-items: center; gap: 24px; }
+.sevens-brand { flex: none; display: inline-flex; align-items: center; min-height: 52px; color: var(--header-text); text-decoration: none; }
+.sevens-wordmark { display: block; width: 218px; height: auto; }
+.sevens-region { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; border: 1px solid var(--header-border); border-radius: 999px; padding: 8px 12px; color: var(--header-muted); font-size: 12px; }
+.sevens-header-nav { justify-self: center; display: flex; align-items: center; gap: 4px; background: var(--header-well); border: 1px solid var(--header-border); padding: 5px; border-radius: 15px; }
+.sevens-nav-link { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 10px 15px; border: 1px solid transparent; border-radius: 10px; color: var(--header-muted); text-decoration: none; font-size: 15px; font-weight: 550; white-space: nowrap; }
+.sevens-nav-link svg { width: 18px; height: 18px; }
+.sevens-nav-link:hover { color: var(--header-text); background: var(--header-hover); }
+.sevens-nav-link[aria-current=page] { color: #20372b; background: #edb28b; border-color: #f1c4a4; box-shadow: 0 3px 8px #00000012,inset 0 1px 0 #fff3; }
+.sevens-header-actions { display: flex; align-items: center; justify-content: end; gap: 12px; }
+.sevens-notification { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; color: var(--header-text); background: var(--header-well); border: 1px solid var(--header-border); border-radius: 13px; text-decoration: none; }
+.sevens-notification:hover { background: var(--header-hover); }
+.sevens-notification[aria-current=page] { border-color: #d7956d; }
+.sevens-unread { position: absolute; top: -7px; right: -6px; display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border: 2px solid var(--header-bg); border-radius: 999px; background: #edac83; color: #20372b; font-size: 10px; font-weight: 750; line-height: 1; }
+.sevens-account { position: relative; }
+.sevens-account-trigger { display: inline-flex; align-items: center; gap: 11px; min-height: 52px; padding: 7px 11px 7px 7px; border: 1px solid var(--header-border); border-radius: 14px; background: var(--header-well); color: var(--header-text); cursor: pointer; }
+.sevens-account-trigger:hover, .sevens-account-trigger[aria-expanded=true] { background: var(--header-hover); }
+.sevens-avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 11px; background: #edac8324; color: var(--header-text); font-size: 12px; font-weight: 700; letter-spacing: .015em; }
+.sevens-account-copy { display: grid; gap: 3px; text-align: left; }
+.sevens-account-copy strong { font-size: 13px; font-weight: 650; line-height: 1.25; }
+.sevens-account-copy small { color: var(--header-muted); font-size: 11px; line-height: 1.2; }
+.sevens-account-trigger > svg { width: 17px; height: 17px; color: var(--header-muted); transition: transform .2s; }
+.sevens-account-trigger[aria-expanded=true] > svg { transform: rotate(180deg); }
+.sevens-account-panel { position: absolute; top: calc(100% + 12px); right: 0; z-index: 60; width: min(300px,calc(100vw - 32px)); padding: 9px; border: 1px solid #d6dfd1; border-radius: 16px; background: #f5f5ee; color: #18372d; box-shadow: 0 22px 60px #0003,0 3px 8px #0001; }
+.sevens-account-identity { display: grid; gap: 7px; margin: 0 5px 7px; padding: 14px 9px 20px; border-bottom: 1px solid #dce2d5; }
+.sevens-account-identity strong { font-size: 15px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+.sevens-account-identity > span { color: #59705e; font-size: 12px; }
+.sevens-account-link, .sevens-account-signout { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 46px; padding: 12px; border: 0; border-radius: 9px; background: transparent; color: #254233; font-size: 14px; font-weight: 550; text-align: left; text-decoration: none; cursor: pointer; }
+.sevens-account-link:hover, .sevens-account-signout:hover { background: #e7ece0; }
+.sevens-account-signout { color: #965637; }
+.sevens-account-signout:disabled { cursor: wait; opacity: .6; }
+.sevens-login { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 11px 16px; border: 1px solid #c27a5166; border-radius: 13px; background: #edac8312; color: var(--header-text); font-size: 14px; font-weight: 650; text-decoration: none; }
+.sevens-login > svg:last-child { width: 17px; height: 17px; color: #c27a51; }
+.sevens-header[data-page=home] .sevens-login > svg:last-child { color: #edac83; }
+.sevens-login:hover { background: #edac8324; border-color: #c27a51; }
+.sevens-menu-trigger { display: none; place-items: center; flex: none; width: 48px; height: 48px; background: var(--header-well); border: 1px solid var(--header-border); border-radius: 13px; color: var(--header-text); cursor: pointer; }
+.sevens-menu-trigger:hover, .sevens-menu-trigger[aria-expanded=true] { background: var(--header-hover); }
+.sevens-mobile-panel { padding: 0 clamp(24px,5vw,112px) 18px; border-top: 1px solid var(--header-border); background: var(--header-bg); }
+.sevens-mobile-region { display: flex; align-items: center; gap: 8px; color: var(--header-muted); font-size: 12px; padding: 15px 12px 10px; margin: 0; }
+.sevens-mobile-link { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px; margin-top: 4px; border-radius: 10px; color: var(--header-text); text-decoration: none; font-size: 15px; font-weight: 550; }
+.sevens-mobile-link:hover { background: var(--header-hover); }
+.sevens-mobile-link[aria-current=page] { color: #20372b; background: #edb28b; }
+.sevens-mobile-link .sevens-unread { position: static; margin-left: auto; border: 0; }
+.sevens-demo-note { margin: 0; padding: 0 clamp(24px,5vw,112px) 10px; color: var(--header-muted); font-size: 11px; }
+.sevens-session-loading { width: 106px; height: 48px; border: 1px solid var(--header-border); border-radius: 13px; background: var(--header-well); }
+.sevens-header a:focus-visible, .sevens-header button:focus-visible { outline: 3px solid #cc8e61; outline-offset: 4px; }
+.sevens-header[data-page=home] a:focus-visible, .sevens-header[data-page=home] button:focus-visible { outline-color: #ffdec4; }
+.workspace-brand .workspace-wordmark { --sevens-logo-ink: #f5f1e8; --sevens-logo-accent: #edac83; width: min(172px,100%); height: auto; }
+
+@media (max-width: 1600px) { .sevens-region { display: none; } }
+@media (max-width: 1320px) { .sevens-account-copy { display: none; } }
+@media (max-width: 1400px) {
+  .sevens-header-inner { grid-template-columns: auto 1fr; min-height: 88px; gap: 16px; padding-block: 15px; }
+  .sevens-header-nav { display: none; }
+  .sevens-header-actions { justify-self: end; }
+  .sevens-menu-trigger { display: grid; }
+  .sevens-wordmark { width: 200px; }
+}
+@media (min-width: 1401px) { .sevens-mobile-panel { display: none!important; } .landing-hero { min-height: min(860px,calc(100svh - 104px)); } }
+@media (max-width: 600px) {
+  .sevens-header-inner { min-height: 82px; padding: 14px 20px; gap: 12px; }
+  .sevens-wordmark { width: 155px; }
+  .sevens-brand { min-height: 44px; }
+  .sevens-header-actions { gap: 8px; }
+  .sevens-notification, .sevens-menu-trigger { width: 44px; height: 44px; border-radius: 12px; }
+  .sevens-account-trigger { min-height: 44px; padding: 5px; gap: 0; border-radius: 12px; }
+  .sevens-avatar { width: 32px; height: 32px; font-size: 11px; border-radius: 9px; }
+  .sevens-account-trigger > svg { display: none; }
+  .sevens-login { min-height: 44px; padding: 10px 12px; font-size: 13px; }
+  .sevens-login > svg:last-child { display: none; }
+  .sevens-account-panel { right: -52px; width: min(300px,calc(100vw - 32px)); }
+  .sevens-mobile-panel { padding: 0 16px 16px; }
+}
+@media (max-width: 380px) {
+  .sevens-header-inner { padding-inline: 16px; gap: 10px; }
+  .sevens-wordmark { width: 138px; }
+}
+@media (prefers-reduced-motion: reduce) { .sevens-account-trigger > svg { transition: none; } }
+
+
+/* A direct cabinet destination remains visible beside the profile controls. */
+.sevens-cabinet-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 11px 14px; border: 1px solid #b9815755; border-radius: 12px; background: var(--header-well); color: var(--header-text); font-size: 13px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+.sevens-cabinet-link:hover { background: var(--header-hover); border-color: #b98157; }
+.sevens-account-copy { max-width: 140px; min-width: 0; }
+.sevens-account-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sevens-mobile-signout { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; }
+@media (max-width: 600px) {
+  .sevens-header-actions > .sevens-account { display: none; }
+  .sevens-cabinet-link { width: 44px; height: 44px; min-height: 44px; padding: 9px; }
+  .sevens-cabinet-link > span { display: none; }
+}

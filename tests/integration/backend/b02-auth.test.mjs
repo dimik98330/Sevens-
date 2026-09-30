@@ -43,7 +43,7 @@ async function registerUser(suffix, extra = {}) {
 }
 
 before(async () => {
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: 'test-Seed-12-chars' });
@@ -80,16 +80,26 @@ describe('B-02 auth and sessions', () => {
     assert.equal(row.rows[0].c, 1); // only the demo seed admin
   });
 
-  it('validates email, password length and consent', async () => {
+  it('validates email and password length', async () => {
     let r = await registerUser('c', { email: 'not-an-email' });
     assert.equal(r.res.status, 400);
     assert.ok(r.json.error.fields.email);
     r = await registerUser('d', { password: 'short' });
     assert.equal(r.res.status, 400);
     assert.ok(r.json.error.fields.password);
-    r = await registerUser('e', { consentAccepted: false });
-    assert.equal(r.res.status, 400);
-    assert.ok(r.json.error.fields.consentAccepted);
+  });
+
+  it('registers without affirmative consent or a legacy consent field', async () => {
+    const withoutAcceptance = await registerUser('e', { consentAccepted: false });
+    assert.equal(withoutAcceptance.res.status, 201, JSON.stringify(withoutAcceptance.json.error?.fields ?? {}));
+    assert.equal(withoutAcceptance.json.data.user.role, 'CITIZEN');
+    const omitted = await registerUser('consent-omitted', { consentAccepted: undefined });
+    assert.equal(omitted.res.status, 201);
+    assert.equal(omitted.json.data.user.role, 'CITIZEN');
+    for (const registered of [withoutAcceptance, omitted]) {
+      const consents = await db.query('SELECT count(*)::int AS c FROM user_consents WHERE user_id=$1', [registered.json.data.user.id]);
+      assert.equal(consents.rows[0].c, 0);
+    }
   });
 
   it('duplicate email is rejected after normalization', async () => {
@@ -121,6 +131,11 @@ describe('B-02 auth and sessions', () => {
     });
     assert.equal(limited.status, 429);
     assert.equal((await limited.json()).error.code, 'RATE_LIMITED');
+    const correctWhileBlocked = await req('POST', '/api/v1/auth/login', {
+      body: { email: 'b02-g@example.test', password: 'correct-horse-12 symbols' },
+    });
+    assert.equal(correctWhileBlocked.status, 429);
+    assert.ok(Number(correctWhileBlocked.headers.get('retry-after')) > 0);
   });
 
   it('logout revokes the session; old cookie stops working', async () => {

@@ -1,0 +1,40 @@
+# One free web service; PostgreSQL is provided separately by Neon/Supabase.
+# Import existing data before the first deploy. No runtime seed overwrites it.
+services:
+  - type: web
+    name: sevens
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:cloud
+    healthCheckPath: /api/health/ready
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_ABAI_MOCK
+        value: "0"
+      - key: APP_ENV
+        value: demo
+      - key: ATTACHMENT_STORAGE
+        value: database
+      - key: DEMO_LOGIN_ENABLED
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_DGIS_MAP_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ASSISTANT_ENABLED
+        value: "true"
+      - key: CLASSIFIER_MODE
+        value: llm
+      - key: OPENAI_CLASSIFIER_MODEL
+        value: gpt-6-sol
+      - key: OPENAI_ASSISTANT_MODEL
+        value: gpt-6-luna
+      - key: API_PROXY_SECRET
+        generateValue: true

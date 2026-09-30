@@ -5,6 +5,7 @@ import { createSession, revokeSession } from './session.mjs';
 import { CONSENT_VERSION } from '../../contracts/enums.mjs';
 
 export const ALLOWED_REGISTER_FIELDS = ['displayName', 'email', 'password', 'consentAccepted'];
+// Signup does not require consent; older clients can still explicitly supply it.
 export const ALLOWED_LOGIN_FIELDS = ['email', 'password'];
 
 export function normalizeEmail(email) {
@@ -23,6 +24,11 @@ export function codePoints(s) {
 }
 
 function rejectUnknown(body, allowed) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    const err = new Error('Ожидается JSON-объект');
+    err.code = 'VALIDATION_ERROR';
+    throw err;
+  }
   const unknown = Object.keys(body || {}).filter((k) => !allowed.includes(k));
   if (unknown.length > 0) {
     const err = new Error('Unknown fields are rejected');
@@ -42,7 +48,6 @@ export function validateRegister(body) {
   if (typeof body.password !== 'string' || codePoints(body.password) < 12 || codePoints(body.password) > 128) {
     fields.password = 'Пароль: 12–128 символов';
   }
-  if (body.consentAccepted !== true) fields.consentAccepted = 'Необходимо согласие';
   if (Object.keys(fields).length > 0) {
     const err = new Error('Проверьте заполнение формы');
     err.code = 'VALIDATION_ERROR';
@@ -70,25 +75,40 @@ export async function registerCitizen(db, body) {
     throw err;
   }
   const passwordHash = await hashPassword(input.password);
-  return db.transaction(async (tx) => {
-    const created = await tx.query(
-      `INSERT INTO users(email_normalized, display_name, password_hash, role, region_id)
-       VALUES($1,$2,$3,'CITIZEN',$4)
-       RETURNING id, display_name, role, organization_id, region_id`,
-      [emailNormalized, input.displayName, passwordHash, region.rows[0].id]);
-    const user = created.rows[0];
-    await tx.query(
-      `INSERT INTO user_consents(user_id, purpose, version) VALUES($1,'service',$2)
-       ON CONFLICT DO NOTHING`,
-      [user.id, CONSENT_VERSION]);
-    const session = await createSession(tx, user.id);
-    return { user, session };
-  });
+  try {
+    return await db.transaction(async (tx) => {
+      const created = await tx.query(
+        `INSERT INTO users(email_normalized, display_name, password_hash, role, region_id)
+         VALUES($1,$2,$3,'CITIZEN',$4)
+         RETURNING id, display_name, role, organization_id, region_id`,
+        [emailNormalized, input.displayName, passwordHash, region.rows[0].id]);
+      const user = created.rows[0];
+      if (body.consentAccepted === true) {
+        await tx.query(
+          `INSERT INTO user_consents(user_id, purpose, version) VALUES($1,'service',$2)
+           ON CONFLICT DO NOTHING`,
+          [user.id, CONSENT_VERSION]);
+      }
+      const session = await createSession(tx, user.id);
+      return { user, session };
+    });
+  } catch (err) {
+    // The pre-check is helpful feedback, but uniqueness must also handle two
+    // simultaneous registrations of the same normalized address.
+    if (err.code === '23505' && err.constraint === 'users_email_normalized_key') {
+      const duplicate = new Error('Проверьте заполнение формы');
+      duplicate.code = 'VALIDATION_ERROR';
+      duplicate.fields = { email: 'Этот email уже зарегистрирован' };
+      throw duplicate;
+    }
+    throw err;
+  }
 }
 
 export async function login(db, body) {
   rejectUnknown(body, ALLOWED_LOGIN_FIELDS);
-  if (!validateEmail(body.email) || typeof body.password !== 'string' || body.password.length === 0) {
+  if (!validateEmail(body.email) || typeof body.password !== 'string'
+    || codePoints(body.password) < 1 || codePoints(body.password) > 128) {
     const err = new Error('Неверный email или пароль');
     err.code = 'UNAUTHENTICATED';
     throw err;

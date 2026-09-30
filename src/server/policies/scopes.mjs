@@ -16,21 +16,31 @@ export function forbidden(message = 'Нет доступа') {
 
 // Load the idea row visible to this actor, or throw 404 (same shape whether
 // the row is missing or foreign — no existence oracle).
-export async function loadIdeaForActor(db, actor, ideaId) {
-  const row = await db.query('SELECT * FROM ideas WHERE id=$1', [ideaId]);
-  const idea = row.rows[0];
-  if (!idea) notFound();
+export function assertIdeaForActor(idea, actor) {
+  if (!idea || idea.region_id !== actor.regionId) notFound();
   if (actor.role === 'CITIZEN') {
     if (idea.author_id !== actor.id) notFound();
     return idea;
   }
-  if (idea.region_id !== actor.regionId) notFound();
   if (actor.role === 'STAFF') {
     if (idea.organization_id !== actor.organizationId) notFound();
     return idea;
   }
-  // ADMIN: region scope only.
+  // ADMIN: region scope only; unknown roles never inherit admin access.
+  if (actor.role !== 'ADMIN') notFound();
   return idea;
+}
+
+export async function loadIdeaForActor(db, actor, ideaId) {
+  const row = await db.query('SELECT * FROM ideas WHERE id=$1', [ideaId]);
+  return assertIdeaForActor(row.rows[0], actor);
+}
+
+// Check the current row AFTER acquiring its lock, including after a reroute
+// committed while this transaction waited. Call before returning a replay.
+export async function lockIdeaForActor(db, actor, ideaId) {
+  const row = await db.query('SELECT * FROM ideas WHERE id=$1 FOR UPDATE', [ideaId]);
+  return assertIdeaForActor(row.rows[0], actor);
 }
 
 // Citizen DTO must never leak staff internals or other authors (03 section 4).

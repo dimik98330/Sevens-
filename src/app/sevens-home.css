@@ -1,0 +1,146 @@
+/* The public story: warm architecture, quiet typography, one primary action. */
+body:has(.sevens-home) { background: #142725; }
+.sevens-home {
+  --home-paper: #f4f3ed;
+  --home-ink: #1a302b;
+  --home-copper: #edac83;
+  --home-gutter: clamp(24px, 5vw, 112px);
+  font-family: "Manrope Variable", "Inter Variable", sans-serif;
+}
+.topbar[data-page=home] { background: #142725; color: #f4f3ed; border-bottom: 1px solid #ffffff12; }
+.topbar[data-page=home] .topbar-inner { min-height: 88px; padding: 15px clamp(24px,5vw,112px); }
+.topbar[data-page=home] .brand { color: #f4f3ed; }
+.topbar[data-page=home] .brand-text strong { font-family: "Manrope Variable", sans-serif; font-size: 31px; font-weight: 650; letter-spacing: -1.5px; }
+.topbar[data-page=home] .brand-mark { color: #edac83; }
+.topbar[data-page=home] .brand-mark svg { width: 30px; height: 34px; }
+.topbar[data-page=home] .brand-description { color: #b4c3b9; border-color: #ffffff26; font-size: 12px; }
+.topbar[data-page=home] .topnav a { color: #c8d1c9; font-size: 13px; }
+.topbar[data-page=home] .topnav a:hover { background: #ffffff0c; color: #fff; }
+.topbar[data-page=home] .user-chip { color: #c8d1c9; }
+.topbar[data-page=home] .topbar-actions .btn { color: #f4f3ed; border: 1px solid #ffffff2b; font-size: 13px; min-height: 44px; padding: 10px 19px; border-radius: 6px; }
+.topbar[data-page=home] .topbar-actions .btn:hover { background: #ffffff0b; }
+.topbar[data-page=home] .menu-btn { color: #eee; border-color: #ffffff33; background: transparent; }
+.topbar[data-page=home] .mobile-nav { background: #142725; border-color: #ffffff22; }
+.topbar[data-page=home] .mobile-nav a { color: #e4e9e2; }
+.topbar[data-page=home] .mobile-nav a[aria-current=page] { background: #ffffff12; }
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: .96fr 1.04fr;
+  align-items: center;
+  gap: clamp(20px,3vw,70px);
+  min-height: min(860px, calc(100svh - 88px));
+  padding: 72px var(--home-gutter) 80px;
+  color: var(--home-paper);
+  background: radial-gradient(ellipse at 78% 52%,#43524345,transparent 55%), #142725;
+  overflow: hidden;
+  position: relative;
+}
+.landing-copy { position: relative; z-index: 2; padding-bottom: 12px; }
+.landing-kicker { font-size: 11px; font-weight: 600; line-height: 1.6; letter-spacing: .14em; text-transform: uppercase; }
+.landing-copy > .landing-kicker { color: #b6c7b8; margin: 0 0 30px; display: flex; align-items: center; gap: 12px; }
+.landing-copy > .landing-kicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #edac83; box-shadow: 0 0 20px #edac8366; flex: none; }
+.landing-title { font-size: clamp(48px,4.55vw,102px); font-weight: 550; line-height: 1.08; letter-spacing: -.045em; margin: 0 0 28px; }
+.landing-title > span { display: block; }
+.landing-title-accent { color: var(--home-copper); }
+.landing-description { color: #bdcbc2; max-width: 470px; font-size: clamp(16px,1.12vw,21px); line-height: 1.8; margin: 0 0 34px; }
+.landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.landing-primary, .landing-discover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 62px;
+  padding: 12px 14px 12px 22px;
+  border: 1px solid;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color .2s, border-color .2s, box-shadow .2s, transform .2s;
+}
+.landing-action-label { white-space: nowrap; }
+.landing-action-icon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; }
+.landing-action-icon svg { transition: transform .2s; }
+.landing-primary {
+  background-color: #edac83;
+  background-image: linear-gradient(140deg,#ffffff24,transparent 75%);
+  border-color: #f8c6a2;
+  color: #20342b;
+  box-shadow: inset 0 1px 0 #ffffff4d, 0 5px 0 #8b51352e, 0 10px 24px #00000024;
+}
+.landing-primary .landing-action-icon { background: #203b31; color: #f9d1b2; box-shadow: inset 0 1px 0 #ffffff18; }
+.landing-primary:hover { background-color: #f8bf95; border-color: #ffdbc0; box-shadow: inset 0 1px 0 #ffffff66,0 5px 0 #8b51352e,0 14px 30px #00000030; transform: translateY(-2px); }
+.landing-primary:hover .landing-action-icon svg { transform: translateX(2px); }
+.landing-discover {
+  background-color: #ffffff06;
+  background-image: linear-gradient(150deg,#ffffff05,transparent 70%);
+  border-color: #6c8377;
+  color: #e5ece2;
+  font-weight: 550;
+  box-shadow: inset 0 1px 0 #ffffff09, 0 8px 24px #0000000a;
+}
+.landing-discover .landing-action-icon { background: #d8e8d912; color: #c4d5c5; }
+.landing-discover .landing-action-icon svg { transform: rotate(90deg); }
+.landing-discover:hover { background-color: #d5e4d914; border-color: #a6baaa; box-shadow: inset 0 1px 0 #ffffff14,0 10px 26px #00000015; transform: translateY(-2px); }
+.landing-discover:hover .landing-action-icon svg { transform: rotate(90deg) translateX(2px); }
+.landing-primary:active, .landing-discover:active { transform: translateY(1px); box-shadow: inset 0 2px 5px #00000018; }
+.landing-primary:focus-visible, .landing-discover:focus-visible { outline: 3px solid #ffe2c9; outline-offset: 5px; }
+.landing-note { font-size: 12px; color: #a7bcb0; margin: 16px 0 0; }
+.landing-visual { position: relative; min-width: 0; padding: 10px 0 120px; }
+.landing-scene { position: relative; width: 112%; margin-left: -6%; aspect-ratio: 1.5; }
+.landing-scene > img { display: block; width: 100%; height: auto; filter: drop-shadow(0 30px 30px #0003); }
+.landing-marker { position: absolute; z-index: 2; width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid #f7e7d082; border-radius: 50%; color: #f4f3ed; background: #1c3432e8; box-shadow: 0 5px 20px #0005; cursor: pointer; transition: transform .25s,background .25s,box-shadow .25s; }
+.landing-marker:hover { transform: translateY(-4px); background: #34564a; }
+.landing-marker[aria-pressed=true] { background: #edac83; color: #17342a; border-color: #edac83; box-shadow: 0 0 0 8px #edac831f,0 5px 24px #0003; }
+.landing-marker[data-marker=transport] { left: 58%; top: 53%; }
+.landing-marker[data-marker=ecology] { left: 79%; top: 42%; }
+.landing-marker[data-marker=safety] { left: 30%; top: 36%; }
+.landing-example { position: absolute; z-index: 3; bottom: 25px; right: 0; width: min(360px,85%); padding: 21px 24px; border: 1px solid #ffffff35; background: #213a34f5; box-shadow: 0 16px 42px #0002; border-radius: 10px; }
+.landing-example-label { color: #b3c6b6; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 13px; }
+.landing-example-category { display: inline-flex; border: 1px solid #eab89940; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #edbc99; }
+.landing-example h2 { color: #f4f3ed; font-size: 19px; font-weight: 550; letter-spacing: -.025em; line-height: 1.4; margin: 9px 0 7px; }
+.landing-example > p:last-child { margin: 0; font-size: 12px; line-height: 1.7; color: #c1d0c4; }
+
+
+@media (max-width: 1100px) {
+  .landing-hero { gap: 20px; padding-top: 50px; padding-bottom: 55px; }
+  .landing-title { font-size: 52px; }
+  .landing-actions { gap: 14px; }
+  .landing-visual { padding-bottom: 165px; }
+  .landing-example { bottom: 40px; width: 100%; }
+}
+@media (max-width: 900px) {
+  .landing-hero { grid-template-columns: 1fr; min-height: 0; padding-top: 55px; padding-bottom: 50px; gap: 30px; }
+  .landing-copy { max-width: 640px; }
+  .landing-title { font-size: clamp(48px,7.5vw,66px); }
+  .landing-description { max-width: 570px; }
+  .landing-visual { max-width: 680px; width: 100%; margin: 0 auto; padding-bottom: 100px; }
+  .landing-scene { width: 100%; margin: 0; }
+  .landing-example { bottom: 0; right: 0; width: min(330px,72%); }
+}
+@media (max-width: 600px) {
+  .topbar[data-page=home] .topbar-inner { min-height: 76px; padding-inline: 22px; gap: 14px; }
+  .topbar[data-page=home] .brand-text strong { font-size: 28px; }
+  .topbar[data-page=home] .brand-mark svg { width: 25px; height: 30px; }
+  .topbar[data-page=home] .topbar-actions .btn { padding-inline: 13px; }
+  .sevens-home { --home-gutter: 22px; }
+  .landing-hero { padding-top: 38px; padding-bottom: 38px; gap: 25px; }
+  .landing-copy > .landing-kicker { font-size: 9px; letter-spacing: .09em; margin-bottom: 24px; }
+  .landing-title { font-size: clamp(37px,10.3vw,53px); line-height: 1.1; margin-bottom: 23px; letter-spacing: -.04em; }
+  .landing-description { font-size: 15px; line-height: 1.8; margin-bottom: 26px; }
+  .landing-actions { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .landing-primary, .landing-discover { width: 100%; min-height: 58px; padding: 11px 12px 11px 20px; font-size: 15px; }
+  .landing-note { font-size: 11px; margin-top: 11px; }
+  .landing-visual { padding-bottom: 0; }
+  .landing-scene { width: calc(100% + 24px); margin-left: -12px; }
+  .landing-marker { width: 44px; height: 44px; }
+  .landing-example { position: relative; bottom: auto; right: auto; width: 100%; padding: 18px 20px; margin-top: -5px; }
+  .landing-example-label { margin-bottom: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-primary:hover, .landing-discover:hover, .landing-primary:active, .landing-discover:active, .landing-marker:hover { transform: none; }
+  .landing-primary:hover .landing-action-icon svg { transform: none; }
+  .landing-discover:hover .landing-action-icon svg { transform: rotate(90deg); }
+}

@@ -1,0 +1,109 @@
+.journey {
+  --journey-text: #f4f3ed;
+  --journey-muted: #bccbc3;
+  --journey-accent: #edac83;
+  position: relative;
+  padding: clamp(68px, 6.5vw, 120px) var(--home-gutter) 112px;
+  color: var(--journey-text);
+  background: radial-gradient(ellipse at 76% 45%, #2a493940, transparent 55%), #142725;
+  border-top: 1px solid #486052;
+  isolation: isolate;
+}
+.journey:focus { outline: none; }
+.heading { display: grid; grid-template-columns: 1.15fr .85fr; align-items: end; gap: 40px; margin-bottom: 48px; }
+.eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 20px; font-size: 12px; line-height: 1.6; letter-spacing: .12em; font-weight: 650; color: var(--journey-muted); }
+.eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: var(--journey-accent); }
+.heading h2 { margin: 0; font-size: clamp(42px, 4.3vw, 72px); line-height: 1.06; letter-spacing: -.045em; font-weight: 550; }
+.heading h2 > span { color: var(--journey-accent); }
+.intro { max-width: 440px; margin: 0 0 8px; color: var(--journey-muted); font-size: 18px; line-height: 1.75; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: clamp(36px, 5vw, 88px); }
+.instructions { color: var(--journey-muted); font-size: 14px; line-height: 1.7; margin: 0 0 19px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.step { width: 100%; display: flex; align-items: flex-start; gap: 20px; padding: 22px 20px; min-height: 126px; text-align: left; border: 1px solid transparent; border-radius: 14px; background: transparent; color: inherit; cursor: pointer; transition: background .2s, border-color .2s; }
+.step:hover { background: #ffffff05; border-color: #58715f; }
+.step[aria-pressed=true] { background: linear-gradient(110deg, #2c483d, #203a32); border-color: #8d7e63; box-shadow: inset 3px 0 0 var(--journey-accent); }
+.step:focus-visible, .howLink:focus-visible, .previewBottom > button:focus-visible { outline: 3px solid var(--journey-accent); outline-offset: 4px; }
+.number { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border: 1px solid #607967; border-radius: 10px; font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; color: #d0dbd3; }
+.step[aria-pressed=true] .number { background: #edac83; color: #20382d; border-color: #edac83; }
+.stepCopy { display: block; flex: 1; min-width: 0; }
+.stepTitle { display: block; font-size: clamp(20px, 1.55vw, 27px); font-weight: 600; letter-spacing: -.025em; line-height: 1.35; margin: 2px 0 8px; }
+.stepDescription { display: block; color: var(--journey-muted); font-size: 16px; line-height: 1.7; max-width: 450px; }
+.stepArrow { display: flex; color: #a3b6a8; margin-top: 9px; flex: none; }
+.step[aria-pressed=true] .stepArrow { color: var(--journey-accent); }
+.reassurance { display: flex; align-items: center; gap: 9px; color: var(--journey-muted); font-size: 13px; line-height: 1.7; padding-left: 20px; margin: 19px 0 0; }
+.preview { overflow: hidden; border: 1px solid #526b58; border-radius: 22px; background: linear-gradient(155deg, #253e34 0%, #1a332b 62%, #223b31 100%); padding: 26px 30px 20px; box-shadow: 0 30px 65px #04171133, inset 0 1px 0 #ffffff07; }
+.preview { scroll-margin-block: 24px 108px; }
+.previewTop { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 24px; }
+.demoLabel { color: #c0cfc3; font-size: 12px; line-height: 1.5; letter-spacing: .02em; font-weight: 550; }
+.status { display: inline-flex; align-items: center; gap: 7px; flex: none; border: 1px solid #9d8664; border-radius: 99px; padding: 7px 10px; font-size: 12px; line-height: 1.4; color: #f6c5a5; background: #edac8309; }
+.status > span { width: 5px; height: 5px; border-radius: 50%; background: #edac83; }
+.preview > h3 { margin: 0 0 11px; font-size: clamp(25px, 2.1vw, 36px); line-height: 1.15; font-weight: 550; letter-spacing: -.035em; }
+.location { display: flex; gap: 7px; align-items: center; margin: 0; font-size: 14px; line-height: 1.7; color: #c2d0c6; }
+.illustration { margin: 0 -15px 0; }
+.illustration > svg { display: block; width: 100%; height: auto; }
+.progress { display: flex; align-items: center; gap: 0; margin: 0 0 24px; }
+.progress > span { position: relative; display: flex; align-items: center; flex: 1; }
+.progress > span:not(:last-child)::after { content: ""; height: 1px; width: calc(100% - 26px); margin-left: 6px; background: #627466; }
+.progress > span:last-child { flex: 0; }
+.progress > span > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #7b8c7b; font-size: 11px; color: #cad4ca; background: #243e32; }
+.progress > span[data-active=true] > span { border-color: #edac83; background: #edac83; color: #20382d; }
+.progress > span[data-active=true]::after { background: #bb956f; }
+.outcome { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 23px; }
+.outcomeIcon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid #7b7860; color: #f2b68c; background: #e8ba8d09; }
+.outcome h4 { margin: 0 0 8px; font-size: 17px; font-weight: 650; line-height: 1.45; letter-spacing: -.02em; }
+.outcome p { margin: 0; color: #c2d0c6; font-size: 15px; line-height: 1.7; }
+.previewBottom { display: flex; align-items: center; gap: 14px; border-top: 1px solid #526b58; padding-top: 16px; }
+.previewBottom > span { color: #bccbc3; flex: 1; font-size: 12px; line-height: 1.65; }
+.previewBottom > button { display: grid; place-items: center; flex: none; min-width: 44px; min-height: 44px; border: 1px solid #748064; border-radius: 50%; color: #edac83; background: #edac8309; cursor: pointer; }
+.previewBottom > button:hover { border-color: #edac83; background: #edac8318; }
+.start { display: flex; align-items: center; justify-content: space-between; gap: 35px; border-top: 1px solid #486052; padding-top: 44px; margin-top: 62px; }
+.start .eyebrow { margin-bottom: 12px; font-size: 11px; }
+.start h3 { margin: 0 0 12px; font-size: clamp(26px, 2.3vw, 38px); line-height: 1.2; letter-spacing: -.035em; font-weight: 550; }
+.start p:last-child { margin: 0; font-size: 15px; color: var(--journey-muted); line-height: 1.7; }
+.startActions { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.howLink { display: flex; align-items: center; justify-content: center; gap: 9px; color: #d1dbd2; text-decoration: none; min-height: 44px; font-size: 14px; }
+.howLink:hover { color: #f3bb94; }
+@media (max-width: 1100px) {
+  .grid { gap: 30px; }
+  .step { gap: 14px; padding: 18px 14px; min-height: 139px; }
+  .preview { padding: 24px 22px 18px; }
+  .previewTop { flex-wrap: wrap; gap: 10px; }
+}
+@media (max-width: 900px) {
+  .heading { grid-template-columns: 1fr; gap: 24px; margin-bottom: 38px; }
+  .intro { max-width: 600px; }
+  .grid { grid-template-columns: 1fr; gap: 28px; }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .step { height: 100%; min-height: 134px; }
+  .stepArrow { display: none; }
+  .stepDescription { font-size: 15px; }
+  .preview { width: 100%; max-width: 660px; margin-inline: auto; }
+  .reassurance { display: none; }
+}
+@media (max-width: 600px) {
+  .journey { padding-top: 58px; padding-bottom: 104px; }
+  .heading h2 { font-size: clamp(38px, 10.5vw, 50px); }
+  .eyebrow { font-size: 11px; margin-bottom: 17px; }
+  .intro { font-size: 16px; line-height: 1.75; margin: 0; }
+  .instructions { font-size: 13px; margin-bottom: 16px; }
+  .steps { gap: 8px; }
+  .step { display: block; padding: 13px 14px 15px; min-height: 116px; border-color: #425e4c; border-radius: 12px; }
+  .number { width: 28px; height: 28px; border-radius: 7px; font-size: 11px; margin-bottom: 10px; }
+  .stepTitle { font-size: 17px; line-height: 1.35; margin: 0; }
+  .stepDescription { display: none; }
+  .preview { border-radius: 17px; padding: 23px 20px 18px; }
+  .previewTop { margin-bottom: 22px; }
+  .demoLabel { font-size: 12px; }
+  .preview > h3 { font-size: 27px; }
+  .location { font-size: 13px; }
+  .illustration { margin: 6px -18px 9px; }
+  .progress { margin-bottom: 22px; }
+  .outcome { gap: 11px; }
+  .outcome h4 { font-size: 17px; }
+  .outcome p { font-size: 15px; }
+  .previewBottom > span { font-size: 12px; }
+  .start { display: block; padding-top: 32px; margin-top: 43px; }
+  .start h3 { font-size: 29px; }
+  .startActions { align-items: stretch; margin-top: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .step { transition: none; } }

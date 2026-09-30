@@ -1,6 +1,8 @@
 // FR-02 validation. Drafts accept partial fields within max bounds;
 // submit enforces full bounds. Lengths in Unicode code points after NFC+trim.
 import { CATEGORY_CODES } from '../../contracts/enums.mjs';
+import { validateLocationGeometry } from '../geo/location.mjs';
+import { requestFields, positiveVersion, uuidField } from './request-validation.mjs';
 
 export function codePoints(s) {
   return Array.from(String(s).normalize('NFC')).length;
@@ -23,7 +25,7 @@ export const LIMITS = {
 
 export const ALLOWED_DRAFT_FIELDS = [
   'title', 'problem', 'solution', 'requestedCategoryCode', 'territoryId',
-  'locationText', 'expectedBenefit', 'consentAccepted',
+  'locationText', 'locationGeometry', 'expectedBenefit', 'consentAccepted',
 ];
 
 function rejectUnknown(body, allowed) {
@@ -46,7 +48,9 @@ function checkCategory(value, fields) {
 }
 
 // Partial draft validation: min lengths NOT enforced, max lengths enforced.
-export function validateDraftPatch(body) {
+export function validateDraftPatch(body, { withVersion = false } = {}) {
+  requestFields(body, [...ALLOWED_DRAFT_FIELDS, ...(withVersion ? ['expectedVersion'] : [])]);
+  if (withVersion) positiveVersion(body.expectedVersion);
   const { expectedVersion, ...known } = body || {};
   void expectedVersion;
   rejectUnknown(known, ALLOWED_DRAFT_FIELDS);
@@ -65,13 +69,19 @@ export function validateDraftPatch(body) {
     if (c !== undefined) patch.requested_category_code = c;
   }
   if (body.territoryId !== undefined) {
-    if (body.territoryId !== null && typeof body.territoryId !== 'string') {
-      fields.territoryId = 'Некорректная территория';
-    } else patch.territory_id = body.territoryId;
+    uuidField(body.territoryId, 'territoryId', { nullable: true });
+    patch.territory_id = body.territoryId;
   }
   if (body.consentAccepted !== undefined) {
     if (typeof body.consentAccepted !== 'boolean') fields.consentAccepted = 'Некорректное значение';
     else patch.consent_accepted = body.consentAccepted;
+  }
+  if (body.locationGeometry !== undefined) {
+    try { patch.locationGeometry = validateLocationGeometry(body.locationGeometry); }
+    catch (err) {
+      if (err.code !== 'VALIDATION_ERROR') throw err;
+      Object.assign(fields, err.fields);
+    }
   }
   if (Object.keys(fields).length > 0) {
     const err = new Error('Проверьте заполнение формы');
@@ -102,6 +112,11 @@ export function validateSubmitFields(idea) {
   }
   if (idea.location_text && codePoints(idea.location_text) > LIMITS.locationText.max) {
     fields.locationText = `Максимум ${LIMITS.locationText.max} символов`;
+  }
+  try { validateLocationGeometry(idea.location_geometry ?? null); }
+  catch (err) {
+    if (err.code !== 'VALIDATION_ERROR') throw err;
+    Object.assign(fields, err.fields);
   }
   if (!idea.territory_id) fields.territoryId = 'Выберите территорию';
   if (idea.requested_category_code !== null && idea.requested_category_code !== undefined

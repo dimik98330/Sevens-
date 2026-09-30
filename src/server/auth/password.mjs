@@ -10,6 +10,7 @@ export const ARGON_OPTIONS = {
 };
 
 const MAX_CONCURRENT = 4;
+const MAX_WAITING = 64;
 let active = 0;
 const waiting = [];
 
@@ -17,6 +18,12 @@ function acquire() {
   if (active < MAX_CONCURRENT) {
     active++;
     return Promise.resolve();
+  }
+  if (waiting.length >= MAX_WAITING) {
+    const err = new Error('Слишком много попыток');
+    err.code = 'RATE_LIMITED';
+    err.retryAfterSeconds = 1;
+    return Promise.reject(err);
   }
   return new Promise((resolve) => waiting.push(resolve));
 }
@@ -31,7 +38,12 @@ function release() {
 }
 
 export async function hashPassword(password) {
-  return argon2.hash(password, ARGON_OPTIONS);
+  await acquire();
+  try {
+    return await argon2.hash(password, ARGON_OPTIONS);
+  } finally {
+    release();
+  }
 }
 
 export async function verifyPassword(hash, password) {

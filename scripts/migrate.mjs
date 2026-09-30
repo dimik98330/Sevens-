@@ -71,30 +71,30 @@ export function splitStatements(sql) {
 }
 
 export async function migrate(db) {
-  await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
-    version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
-  const applied = new Set(
-    (await db.query('SELECT version FROM schema_migrations')).rows.map((r) => r.version)
-  );
   const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
-  const fresh = [];
-  for (const file of files) {
-    if (applied.has(file)) continue;
-    const sql = readFileSync(path.join(migrationsDir, file), 'utf8');
-    await db.query('BEGIN');
-    try {
-      for (const stmt of splitStatements(sql)) {
-        await db.query(stmt);
+  return db.transaction(async (tx) => {
+    // Serializes separate PostgreSQL init processes, including first creation
+    // of the ledger. PGlite's native transaction already serializes callers.
+    if (db.kind === 'pg') await tx.query('SELECT pg_advisory_xact_lock(1936029285, 1)');
+    await tx.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
+      version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+    const applied = new Set(
+      (await tx.query('SELECT version FROM schema_migrations')).rows.map((r) => r.version)
+    );
+    const fresh = [];
+    for (const file of files) {
+      if (applied.has(file)) continue;
+      const sql = readFileSync(path.join(migrationsDir, file), 'utf8');
+      try {
+        for (const stmt of splitStatements(sql)) await tx.query(stmt);
+        await tx.query('INSERT INTO schema_migrations(version) VALUES($1)', [file]);
+      } catch (err) {
+        throw new Error(`Migration ${file} failed: ${err.message}`, { cause: err });
       }
-      await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [file]);
-      await db.query('COMMIT');
-    } catch (err) {
-      try { await db.query('ROLLBACK'); } catch {}
-      throw new Error(`Migration ${file} failed: ${err.message}`);
+      fresh.push(file);
     }
-    fresh.push(file);
-  }
-  return { applied: files.filter((f) => applied.has(f)), fresh };
+    return { applied: files.filter((f) => applied.has(f)), fresh };
+  });
 }
 
 const runAsScript = process.argv[1] && path.resolve(process.argv[1]) === path.join(here, 'migrate.mjs');

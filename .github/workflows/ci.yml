@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:integration
+        env:
+          # Seed refuses defaults (fail-closed); CI provides an explicit test password.
+          DEMO_PASSWORD: test-ci-seed-12-chars
+      - run: npm run build
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: sevens_backend_test
+          POSTGRES_USER: sevens_backend_test
+          POSTGRES_PASSWORD: ci-synthetic-postgres-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sevens_backend_test -d sevens_backend_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:postgres
+        env:
+          APP_ENV: test
+          LOG_LEVEL: silent
+          BACKEND_PG_TEST_URL: postgresql://sevens_backend_test:ci-synthetic-postgres-password@127.0.0.1:5432/sevens_backend_test
+
+  production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:release
+      - run: npx playwright install --with-deps chromium
+      - name: Browser acceptance on the isolated release
+        run: node scripts/run-release-browser.mjs
+      - name: Staff clarification resume contract
+        run: node tests/e2e/backend-workflow-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-verification
+          include-hidden-files: true
+          path: |
+            .data/backend-verification/*.log
+            .data/backend-verification/*report.json
+            docs/design/screenshots/backend-release

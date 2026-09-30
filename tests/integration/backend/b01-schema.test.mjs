@@ -1,6 +1,6 @@
 // B-01 integration tests: migrations, catalogs, seed idempotency, SQL guards.
-// Runs against PGlite or real PostgreSQL (DATABASE_URL). INT-01 coverage.
-import { describe, it, before } from 'node:test';
+// Always uses isolated memory-only PGlite; never resets DATABASE_URL.
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -19,7 +19,7 @@ let db;
 let ids = {};
 
 before(async () => {
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await resetDb(db);
   await migrate(db);
   const first = await seed(db, { demoPassword: 'test-Seed-12-chars' });
@@ -36,11 +36,13 @@ before(async () => {
   ids.probeIdea = row.rows[0];
 });
 
+after(async () => { await db?.close(); });
+
 describe('B-01 migrations and seed (INT-01)', () => {
   it('applies all migrations and is a no-op on rerun', async () => {
     const again = await migrate(db);
     assert.deepEqual(again.fresh, []);
-    assert.ok(again.applied.length >= 3);
+    assert.ok(again.applied.includes('0004_location_geometry.sql'));
   });
 
   it('reseed creates no duplicates and preserves user ideas', async () => {
@@ -176,7 +178,7 @@ describe('B-01 migrations and seed (INT-01)', () => {
     // environment, so stash and restore DEMO_PASSWORD around the check.
     const saved = process.env.DEMO_PASSWORD;
     delete process.env.DEMO_PASSWORD;
-    const fresh = await openDatabase();
+    const fresh = await openDatabase({ databaseUrl: null, pgliteDir: null });
     try {
       await migrate(fresh);
       await assert.rejects(seed(fresh), /DEMO_PASSWORD/);

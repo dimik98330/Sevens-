@@ -1,8 +1,8 @@
 // D-01: explicit rules-v1 feature dictionary (04 section 3).
 // Only the word forms listed here participate in scoring. Unlisted forms,
-// typos, negations and paraphrases do NOT match: that is a documented
-// limitation of rules-v1, and such ideas fall back to LOW/TRIAGE instead of
-// a confident wrong route. Each feature counts ONCE per whole document.
+// typos and paraphrases may not match. Negated known terms STILL match:
+// rules-v1 does not understand negation, so HIGH can be wrong too. Bands are
+// dictionary-score bands, not calibrated accuracy. Each feature counts ONCE.
 
 import type { CategoryCode } from './types';
 

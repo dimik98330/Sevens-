@@ -50,7 +50,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const { data } = await api.get<{ id: string; displayName: string; role: SessionUser["role"]; organizationId: string | null; csrfToken: string }>(
           "/api/v1/auth/me",
         );
-        setCsrf(data.csrfToken);
+        setCsrf(data.csrfToken, data.id);
         setUser({ id: data.id, displayName: data.displayName, role: data.role, organizationId: data.organizationId });
       }
     } catch {
@@ -80,14 +80,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Уведомления: опрос раз в 10 с на активной вкладке (01 §14).
   useEffect(() => {
     if (!user) return;
+    let active = true;
     let timer: ReturnType<typeof setInterval> | null = null;
     const poll = async () => {
       if (document.hidden) return;
       try {
-        const list = currentMockMode()
-          ? mockStore.notifications()
-          : (await api.get<Array<{ readAt: string | null }>>("/api/v1/notifications")).data;
-        setUnread(list.filter((n) => !n.readAt).length);
+        if (currentMockMode()) {
+          if (active) setUnread(mockStore.notifications().filter((n) => !n.readAt).length);
+        } else {
+          const { data, meta } = await api.get<Array<{ readAt: string | null }>>("/api/v1/notifications");
+          if (active) setUnread(typeof meta.unreadCount === "number" ? meta.unreadCount : data.filter((n) => !n.readAt).length);
+        }
       } catch {
         // тихий пропуск: ошибка видна на самом экране уведомлений
       }
@@ -97,6 +100,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const onVis = () => poll();
     document.addEventListener("visibilitychange", onVis);
     return () => {
+      active = false;
       if (timer) clearInterval(timer);
       document.removeEventListener("visibilitychange", onVis);
     };

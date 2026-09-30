@@ -1,0 +1,75 @@
+# Local demo Compose: db + one-shot init + private API + public app.
+# The database port is NOT published to the host. Named volumes survive
+# `stop`/`start` and plain `down`; `down -v` deletes demo data (07 section 9).
+# Image digests stay unpinned until the target registry is selected.
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  init:
+    build:
+      context: .
+      target: init
+    env_file: ${APP_ENV_FILE:-.env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: api
+    env_file: ${APP_ENV_FILE:-.env}
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 18080
+    volumes:
+      - uploads:/app/storage/uploads
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18080/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: runner
+      args:
+        NEXT_PUBLIC_DGIS_MAP_KEY: ${NEXT_PUBLIC_DGIS_MAP_KEY:-}
+    env_file: ${APP_ENV_FILE:-.env}
+    environment:
+      API_INTERNAL_URL: http://api:18080
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:

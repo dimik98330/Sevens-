@@ -6,6 +6,16 @@
 import { api, setCsrf } from "./api-client";
 import { currentMockMode, mockStore } from "./mock";
 import ru from "@/locales/ru.json";
+import type { CategoryCode, RoutingPreviewInput, RoutingPreviewResult } from "@/contracts";
+import { territoryMetadata, type CatalogTerritory } from './territories';
+
+// Public server metadata may evolve independently of the route version.
+export interface ServerRoutingPreviewResult extends RoutingPreviewResult {
+  detectedCategoryCode?: CategoryCode | null;
+  catalogVersion?: string;
+  classificationSource?: "MODEL" | "RULES";
+  classifierStatus?: "READY" | "FALLBACK";
+}
 
 export function useMock(): boolean {
   return currentMockMode();
@@ -16,6 +26,10 @@ export function useMock(): boolean {
 // визарда в mock- и real-режимах: каталоги в обеих формах несут id.
 export function resolveTerritoryId(t: { id?: string; code: string }): string {
   return t.id ?? t.code;
+}
+
+export function territoryNameForDisplay(name: string): string {
+  return name.replace(/\s*[—-]\s*демонстрационная территория$/iu, "");
 }
 
 interface FlatAuth {
@@ -31,7 +45,7 @@ interface FlatAuth {
 export function normalizeAuthResponse(data: unknown): FlatAuth {
   const d = data as { user?: Omit<FlatAuth, "csrfToken">; csrfToken?: string } & Partial<FlatAuth>;
   const u = d.user ?? d;
-  if (typeof d.csrfToken === "string") setCsrf(d.csrfToken);
+  if (typeof d.csrfToken === "string") setCsrf(d.csrfToken, typeof u.id === "string" ? u.id : null);
   return {
     id: String(u.id ?? ""),
     displayName: String(u.displayName ?? ""),
@@ -43,7 +57,7 @@ export function normalizeAuthResponse(data: unknown): FlatAuth {
 
 export interface NormalizedCatalog {
   categories: string[];
-  territories: Array<{ id?: string; code: string; kind?: string; nameRu: string }>;
+  territories: CatalogTerritory[];
   ruleVersion: string;
   consentVersion: string;
 }
@@ -54,7 +68,7 @@ export interface NormalizedCatalog {
 export function normalizeCatalogs(data: unknown): NormalizedCatalog {
   const d = (data ?? {}) as {
     categories?: Array<string | { code?: string }>;
-    territories?: Array<{ id?: string; code?: string; kind?: string; nameRu?: string }>;
+    territories?: Array<{ id?: string; code?: string; kind?: string; nameRu?: string; nameKk?: string }>;
     ruleVersion?: string;
     consentVersion?: string;
   };
@@ -62,7 +76,8 @@ export function normalizeCatalogs(data: unknown): NormalizedCatalog {
     categories: (d.categories ?? []).map((c) => (typeof c === "string" ? c : String(c?.code ?? ""))).filter(Boolean),
     territories: (d.territories ?? [])
       .filter((t) => typeof t?.code === "string")
-      .map((t) => ({ id: t.id, code: t.code as string, kind: t.kind, nameRu: String(t.nameRu ?? t.code) })),
+      .filter(t => t.kind !== 'DISTRICT' && t.kind !== 'CITY_ADMIN')
+      .map((t) => ({ ...territoryMetadata(t.code as string), id: t.id, code: t.code as string, kind: t.kind, nameRu: territoryNameForDisplay(String(t.nameRu ?? t.code)), nameKk: t.nameKk || territoryMetadata(t.code as string).nameKk })),
     ruleVersion: String(d.ruleVersion ?? ""),
     consentVersion: String(d.consentVersion ?? ""),
   };
@@ -74,7 +89,10 @@ export function normalizeCatalogs(data: unknown): NormalizedCatalog {
 // тела реплик сервером не раскрываются (DTO-запрос к B).
 const STATUSES = ru.statuses as Record<string, string>;
 
-function eventText(e: { type?: string; fromStatus?: string | null; toStatus?: string | null }): string {
+function eventText(e: { type?: string; fromStatus?: string | null; toStatus?: string | null; payload?: { publicationState?: unknown } | null }): string {
+  if (e.payload?.publicationState === "PENDING") return "Карточка отправлена на проверку публикации";
+  if (e.payload?.publicationState === "PUBLISHED") return "Карточка опубликована в «Идеях региона»";
+  if (e.payload?.publicationState === "REJECTED") return "Публикация возвращена автору на подготовку";
   const s = (code?: string | null) => (code ? (STATUSES[code] ?? code) : "");
   switch (e.type) {
     case "STATUS_CHANGED":
@@ -122,6 +140,9 @@ export interface ThreadComment {
   author: string;
   body: string;
   at: string;
+  authorId?: string;
+  authorRole?: "CITIZEN" | "STAFF" | "ADMIN" | null;
+  kind?: string;
 }
 
 interface RawEvent {
@@ -135,6 +156,12 @@ interface RawEvent {
   // B 49d2427: тело linked-комментария в событии timeline (gated: гражданин —
   // только PUBLIC, сотрудник — все). Поле называется body.
   body?: string | null;
+  authorId?: string | null;
+  authorDisplayName?: string | null;
+  authorRole?: string | null;
+  commentKind?: string | null;
+  commentVisibility?: string | null;
+  payload?: { publicationState?: unknown } | null;
 }
 
 export function mapTimeline(
@@ -157,18 +184,30 @@ export function mapTimeline(
 // сотруднику — все). Фасад сводит их к форме comments[], которую уже
 // рендерят обе деталки.
 export function threadFromTimeline(items: unknown, withActor: boolean): ThreadComment[] {
-  return mapTimeline(items, withActor)
-    .filter((r) => typeof r.body === "string" && r.body.length > 0)
-    .map((r) => ({
-      id: r.id,
-      visibility: r.visibility === "INTERNAL" ? "INTERNAL" as const : "PUBLIC" as const,
-      author: r.actor ?? "",
-      body: r.body as string,
-      at: r.at,
-    }));
+  const list = (Array.isArray(items) ? items : []) as RawEvent[];
+  return list.filter((e) => typeof e.body === "string" && e.body.length > 0
+    && (e.visibility === "PUBLIC" || withActor && e.visibility === "INTERNAL")
+    && ((e.commentVisibility ?? e.visibility) === "PUBLIC" || withActor && (e.commentVisibility ?? e.visibility) === "INTERNAL"))
+    .map((e, index) => {
+      const kind = e.commentKind ?? (e.type === "CLARIFICATION_ANSWERED" ? "CLARIFICATION_ANSWER"
+        : e.type === "CLARIFICATION_REQUESTED" ? "CLARIFICATION_QUESTION" : undefined);
+      const role = e.authorRole === "CITIZEN" || e.authorRole === "STAFF" || e.authorRole === "ADMIN" ? e.authorRole : null;
+      return {
+        id: String(e.id ?? `comment-${index}`),
+        visibility: e.visibility === "INTERNAL" || e.commentVisibility === "INTERNAL" ? "INTERNAL" as const : "PUBLIC" as const,
+        author: typeof e.authorDisplayName === "string" ? e.authorDisplayName : "",
+        body: e.body as string,
+        at: String(e.createdAt ?? ""),
+        ...(typeof e.authorId === "string" ? { authorId: e.authorId } : {}),
+        authorRole: role,
+        ...(typeof kind === "string" ? { kind } : {}),
+      };
+    });
 }
 
 export const store = {
+  routingPreview: (body: RoutingPreviewInput, signal?: AbortSignal) =>
+    api.post<ServerRoutingPreviewResult>("/api/v1/ideas/routing-preview", body, { signal }),
   catalogs: async () => {
     if (useMock()) return Promise.resolve(mockStore.catalogs());
     const { data, meta } = await api.get<unknown>("/api/v1/catalogs");
@@ -180,6 +219,11 @@ export const store = {
     if (useMock()) return Promise.resolve(mockStore.login(body));
     const { data, meta } = await api.post<unknown>("/api/v1/auth/login", body);
     return { data: normalizeAuthResponse(data), meta };
+  },
+  // Demo shortcuts always use real server sessions, never mock identities.
+  demoLogin: async(role:'CITIZEN'|'STAFF')=>{
+    const {data,meta}=await api.post<unknown>('/api/v1/auth/demo',{role});
+    return {data:normalizeAuthResponse(data),meta};
   },
   register: async (body: { displayName: string; email: string; password: string; consentAccepted: boolean }) => {
     if (useMock()) return Promise.resolve(mockStore.register(body));
@@ -194,11 +238,18 @@ export const store = {
     useMock() ? Promise.resolve(mockStore.patchDraft(id, body)) : api.patch(`/api/v1/ideas/${id}`, body),
   submit: (id: string, body: { expectedVersion: number; consentAccepted: boolean }, key: string) =>
     useMock() ? Promise.resolve(mockStore.submit(id, body)) : api.post(`/api/v1/ideas/${id}/submit`, body, { idempotencyKey: key }),
-  mine: (params: { q?: string; status?: string }) => {
-    if (useMock()) return Promise.resolve(mockStore.mine(params));
+  mine: (params: { q?: string; status?: string; page?: number; pageSize?: number }) => {
+    if (useMock()) {
+      const result = mockStore.mine(params);
+      const page = params.page ?? 1;
+      const pageSize = params.pageSize ?? 20;
+      return Promise.resolve({ ...result, data: result.data.slice((page - 1) * pageSize, page * pageSize), meta: { ...result.meta, page, pageSize } });
+    }
     const s = new URLSearchParams({ scope: "mine" });
     if (params.q) s.set("q", params.q.slice(0, 100));
     if (params.status) s.set("status", params.status);
+    if (params.page) s.set("page", String(params.page));
+    if (params.pageSize) s.set("pageSize", String(params.pageSize));
     return api.get(`/api/v1/ideas?${s}`);
   },
   get: async (id: string) => {

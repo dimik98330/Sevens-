@@ -9,6 +9,7 @@ import type { CatalogSnapshot, RoutingDecision } from "@/domain/routing/types";
 import type { IdeaStatus } from "@/contracts";
 import { newIdempotencyKey } from "./api-client";
 import { previewRoute } from "./route-preview";
+import abaiTerritories from '@/domain/territories/abai.json';
 
 export function defaultMockMode(): boolean {
   // Явный флаг побеждает всегда. Без флага mock включён только вне production:
@@ -19,6 +20,7 @@ export function defaultMockMode(): boolean {
 }
 
 export function currentMockMode(): boolean {
+  if (process.env.NEXT_PUBLIC_ABAI_MOCK === "0") return false;
   if (typeof window === "undefined") return defaultMockMode();
   const q = new URLSearchParams(window.location.search);
   if (q.has("mock")) return q.get("mock") !== "0";
@@ -33,7 +35,7 @@ export function currentMockMode(): boolean {
 export const DEV_CATALOG: CatalogSnapshot = {
   ruleVersion: "rules-v1",
   territories: [
-    { code: "DEMO_SEMEY", active: true },
+    ...abaiTerritories.territories.map(t=>({code:t.code,active:true})),
     { code: "DEMO_LOCALITY", active: true },
   ],
   organizations: [
@@ -79,7 +81,7 @@ export interface MockIdea {
   routing: RoutingDecision | null;
   attachments: Array<{ id: string; originalName: string; mime: string; sizeBytes: number; createdAt: string }>;
   timeline: Array<{ id: string; at: string; actor: string; text: string }>;
-  comments: Array<{ id: string; visibility: "PUBLIC" | "INTERNAL"; author: string; body: string; at: string }>;
+  comments: Array<{ id: string; visibility: "PUBLIC" | "INTERNAL"; author: string; body: string; at: string; authorId?: string; authorRole?: "CITIZEN" | "STAFF" | "ADMIN"; kind?: string }>;
 }
 
 const now = () => new Date().toISOString();
@@ -142,7 +144,7 @@ function seedIdeas(): MockIdea[] {
     attachments: [],
     timeline: [{ id: `e-${o.id}`, at: now(), actor: "Демо-житель 1", text: "Идея зарегистрирована на платформе." }],
     comments: o.comment
-      ? [{ id: `c-${o.id}`, visibility: "PUBLIC", author: "Демо-сотрудник", body: o.comment, at: now() }]
+      ? [{ id: `c-${o.id}`, visibility: "PUBLIC", author: "Демо-сотрудник", authorId: "u-staff-triage", authorRole: "STAFF", kind: o.status === "NEEDS_INFO" ? "CLARIFICATION_QUESTION" : "STATUS_COMMENT", body: o.comment, at: now() }]
       : [],
   });
   const route = (
@@ -286,12 +288,7 @@ class Store {
       data: {
         categories: ["TRANSPORT", "UTILITIES", "EDUCATION", "ECOLOGY", "SAFETY", "HEALTH", "TOURISM", "ACCESSIBILITY", "OTHER"],
         territories: [
-          {
-            id: "5abbde34-0000-4000-8000-000000000001",
-            code: "DEMO_SEMEY",
-            kind: "LOCALITY",
-            nameRu: "Семей — демонстрационная территория",
-          },
+          ...abaiTerritories.territories.map(t=>({...t,id:t.code==='DEMO_SEMEY' ? '5abbde34-0000-4000-8000-000000000001' : t.id})),
           {
             id: "5abbde34-0000-4000-8000-000000000002",
             code: "DEMO_LOCALITY",
@@ -316,7 +313,6 @@ class Store {
   }
 
   register(body: { displayName?: string; email?: string; password?: string; consentAccepted?: boolean }) {
-    if (!body.consentAccepted) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { consentAccepted: "Нужно согласие" });
     if ((body.password ?? "").length < 12)
       fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { password: "Пароль: минимум 12 символов" });
     const email = (body.email ?? "").trim().toLowerCase();
@@ -458,7 +454,7 @@ class Store {
       fail(409, "VERSION_CONFLICT", "Карточка обновлена. Обновите данные и повторите.");
     if (body.body.trim().length < 10)
       fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { body: "Ответ — минимум 10 символов" });
-    it!.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, body: body.body.trim(), at: now() });
+    it!.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, authorId: me.id, authorRole: "CITIZEN", kind: "CLARIFICATION_ANSWER", body: body.body.trim(), at: now() });
     it!.timeline.push({ id: `e-${Date.now()}`, at: now(), actor: me.displayName, text: "Автор дополнил идею." });
     it!.status = "UNDER_REVIEW";
     it!.version += 1;
@@ -635,7 +631,7 @@ class Store {
       fail(400, "VALIDATION_ERROR", "Сначала назначьте ответственного", { assigneeId: "Нужен ответственный" });
     it.assignee = assignee;
     if (comment)
-      it.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, body: comment, at: now() });
+      it.comments.push({ id: `c-${Date.now()}`, visibility: "PUBLIC", author: me.displayName, authorId: me.id, authorRole: me.role, kind: to === "NEEDS_INFO" ? "CLARIFICATION_QUESTION" : "STATUS_COMMENT", body: comment, at: now() });
     it.status = to as MockIdea["status"];
     it.resolutionType = (body.resolutionType as string) ?? null;
     it.version += 1;
@@ -650,7 +646,7 @@ class Store {
     if (body.expectedVersion !== it.version)
       fail(409, "VERSION_CONFLICT", "Коллега уже изменил эту идею. Обновите карточку перед сохранением.");
     if (!body.body.trim()) fail(400, "VALIDATION_ERROR", "Проверьте заполнение формы", { body: "Пустое сообщение" });
-    it.comments.push({ id: `c-${Date.now()}`, visibility: body.visibility, author: me.displayName, body: body.body.trim(), at: now() });
+    it.comments.push({ id: `c-${Date.now()}`, visibility: body.visibility, author: me.displayName, authorId: me.id, authorRole: me.role, kind: "NOTE", body: body.body.trim(), at: now() });
     it.version += 1;
     return { data: { id: it.id, version: it.version }, meta: { requestId: reqId() } };
   }

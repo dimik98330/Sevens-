@@ -71,7 +71,7 @@ async function submitFreshIdea(auth) {
 }
 
 before(async () => {
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: SEED_PASSWORD });
@@ -114,6 +114,9 @@ describe('B-04 full cycle (E2E-01 spine)', () => {
     assert.equal(take.status, 200);
     const taken = (await take.json()).data;
     assert.equal(taken.assigneeId, staff.user.id);
+    const ownership = await db.query(
+      `SELECT count(*)::int AS c FROM idea_events WHERE idea_id=$1 AND type='ASSIGNED'`, [idea.id]);
+    assert.equal(ownership.rows[0].c, 1, 'taking ownership writes its assignment event');
 
     // Race: second writer with the old version loses (INT-04).
     const race = await req('POST', `/api/v1/ideas/${idea.id}/status`, {
@@ -132,6 +135,10 @@ describe('B-04 full cycle (E2E-01 spine)', () => {
     // Author sees status, comment and notifications.
     const detail = await req('GET', `/api/v1/ideas/${idea.id}`, author);
     assert.equal((await detail.json()).data.status, 'IN_PROGRESS');
+    const publicTimeline = await req('GET', `/api/v1/ideas/${idea.id}/timeline`, author);
+    assert.ok((await publicTimeline.json()).data.some((event) =>
+      event.toStatus === 'IN_PROGRESS' && event.body === 'Принято в работу, готовим план действий.'),
+    'the exact optional status comment reaches the author');
     const notifs = await req('GET', '/api/v1/notifications', { ...author, query: '?unreadOnly=true' });
     const notifsJson = await notifs.json();
     const kinds = notifsJson.data.map((n) => n.kind);
@@ -288,8 +295,8 @@ describe('B-04 full cycle (E2E-01 spine)', () => {
     const ev = await db.query(
       `SELECT type FROM idea_events WHERE idea_id=$1 ORDER BY created_at, id`, [idea.id]);
     const types = ev.rows.map((r) => r.type);
-    assert.ok(types.includes('ASSIGNED'));
-    assert.ok(types.includes('UNASSIGNED'));
+    assert.equal(types.filter((type) => type === 'ASSIGNED').length, 1);
+    assert.equal(types.filter((type) => type === 'UNASSIGNED').length, 1);
   });
 });
 

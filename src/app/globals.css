@@ -1,21 +1,21 @@
-/* C-01: визуальные токены из 05 §2. Один акцент, светлый фон, 16px, радиусы 16/10. */
+/* Sevens / mineral, graphite, copper. Shared by public and working interfaces. */
 :root {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --surface: #ffffff;
-  --text: #14243b;
-  --text-2: #536174;
-  --accent: #176b5b;
-  --accent-dark: #0f4f43;
-  --accent-soft: #f0faf6;
-  --border: #dce3ea;
-  --info-bg: #eaf2ff;
+  --bg: #e9e8e3;
+  --surface: #f9f8f5;
+  --text: #242e32;
+  --text-2: #5d6869;
+  --accent: #a94e2f;
+  --accent-dark: #873b23;
+  --accent-soft: #f2e5db;
+  --border: #d3d6ce;
+  --info-bg: #e5eced;
   --warn-bg: #fff7e6;
   --danger: #b3261e;
   --danger-bg: #fdecea;
-  --radius-card: 16px;
-  --radius-field: 10px;
-  --max: 1200px;
+  --radius-card: 12px;
+  --radius-field: 7px;
+  --max: 1440px;
   --max-form: 760px;
 }
 
@@ -35,7 +35,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: "Manrope Variable", "Segoe UI", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.55;
 }

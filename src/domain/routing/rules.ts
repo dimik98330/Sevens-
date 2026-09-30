@@ -28,7 +28,7 @@ function codePoints(value: string): number {
   return [...value].length;
 }
 
-function validateInput(input: RoutingInput): void {
+export function validateInput(input: RoutingInput): void {
   for (const field of ['title', 'problem', 'solution'] as const) {
     if (typeof input[field] !== 'string') {
       throw new RoutingInputError(field, 'Поле должно быть строкой');
@@ -53,7 +53,7 @@ interface CatalogIndex {
   triageCode: string | null;
 }
 
-function indexCatalog(catalog: CatalogSnapshot, overrides: RoutingContext): CatalogIndex {
+export function indexCatalog(catalog: CatalogSnapshot, overrides: RoutingContext): CatalogIndex {
   const disabled = new Set(overrides.disabledOrganizationCodes ?? []);
   const orgByCode = new Map<string, { name: string; active: boolean; isTriage: boolean }>();
   let triageCode: string | null = null;
@@ -71,7 +71,7 @@ type RouteTarget =
   | { kind: 'unavailable' }
   | { kind: 'no-route' };
 
-function resolveTarget(
+export function resolveTarget(
   category: CategoryCode,
   territoryCode: string,
   catalog: CatalogSnapshot,
@@ -99,7 +99,7 @@ function resolveTarget(
   return { kind: 'org', organizationCode: best.rule.organizationCode };
 }
 
-function confidenceBand(topScore: number, secondScore: number): ConfidenceBand {
+export function confidenceBand(topScore: number, secondScore: number): ConfidenceBand {
   if (topScore >= 3 && topScore - secondScore >= 2) return 'HIGH';
   if (topScore >= 2) return 'MEDIUM';
   return 'LOW';

@@ -120,7 +120,7 @@ async function expectGuardCode(res, label, status, code) {
 }
 
 before(async () => {
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: SEED_PASSWORD });
@@ -229,21 +229,21 @@ describe('B-04 session negative', () => {
     await expectGuardCode(notif, 'notifications/read with cross-user CSRF', 403, 'CSRF_INVALID');
   });
 
-  it('(4) stale CSRF after GET /me rotation is rejected on next mutation', async () => {
+  it('(4) two tabs keep a stable CSRF and both can mutate', async () => {
     const oldCsrf = citizenA.csrf;
     const me = await req('GET', '/api/v1/auth/me', { cookie: citizenA.cookie });
     assert.equal(me.status, 200);
     const freshCsrf = (await me.json()).data.csrfToken;
-    assert.notEqual(freshCsrf, oldCsrf, 'rotation must issue a new token');
+    assert.equal(freshCsrf, oldCsrf, 'reading me must preserve the session token');
 
     const stale = await req('POST', '/api/v1/ideas', {
       cookie: citizenA.cookie, csrf: oldCsrf, key: randomUUID(),
       body: { ...IDEA_TEXT, territoryId, requestedCategoryCode: null },
     });
-    await expectGuardCode(stale, 'POST /ideas with stale CSRF', 403, 'CSRF_INVALID');
+    assert.equal(stale.status, 201, 'first tab keeps access after another tab reads me');
+    await stale.json();
 
-    // The rotated token works: session itself is still valid, so the 403
-    // above can only come from the rotation.
+    // The second tab sees the same token and can write independently.
     const fresh = await req('POST', '/api/v1/ideas', {
       cookie: citizenA.cookie, csrf: freshCsrf, key: randomUUID(),
       body: { ...IDEA_TEXT, territoryId, requestedCategoryCode: null },

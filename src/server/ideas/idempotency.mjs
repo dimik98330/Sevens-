@@ -59,13 +59,14 @@ export async function beginKeyedOp(tx, userId, operation, key, requestHash) {
     if (ins.rows.length === 1) return { proceed: true };
     const row = await tx.query(
       `SELECT request_hash, response_status, response_json, expires_at FROM idempotency_records
-       WHERE user_id=$1 AND operation=$2 AND key=$3`,
+        WHERE user_id=$1 AND operation=$2 AND key=$3 FOR UPDATE`,
       [userId, operation, key]);
     const stored = row.rows[0];
     if (!stored || stored.response_status === 0 || new Date(stored.expires_at) <= new Date()) {
       // Stale placeholder (crashed writer) or expired key: reclaim the slot.
       await tx.query(
-        `DELETE FROM idempotency_records WHERE user_id=$1 AND operation=$2 AND key=$3`,
+        `DELETE FROM idempotency_records WHERE user_id=$1 AND operation=$2 AND key=$3
+           AND (expires_at <= now() OR response_status=0)`,
         [userId, operation, key]);
       continue;
     }
@@ -85,7 +86,8 @@ export async function finishKeyedOp(tx, userId, operation, key, status, body) {
 }
 
 export function requireKey(value) {
-  if (typeof value !== 'string' || value.length < 8 || value.length > 128) {
+  if (typeof value !== 'string' || value.length < 8 || value.length > 128
+      || /[\u0000-\u001f\u007f]/.test(value)) {
     const err = new Error('Требуется Idempotency-Key');
     err.code = 'VALIDATION_ERROR';
     err.fields = { idempotencyKey: 'Передайте уникальный ключ повторной отправки' };

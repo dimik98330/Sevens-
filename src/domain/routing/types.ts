@@ -63,7 +63,10 @@ export interface RoutingEvidence {
 
 export interface RoutingDecision {
   source: 'RULES';
-  ruleVersion: 'rules-v1';
+  ruleVersion: 'rules-v1' | 'rules-v2' | 'hybrid-v2';
+  catalogVersion?: 'rules-v1';
+  detectedCategoryCode?: CategoryCode | null;
+  analysis?: ClassificationAnalysis;
   effectiveCategoryCode: CategoryCode;
   organizationCode: string;
   mode: RoutingMode;
@@ -75,6 +78,28 @@ export interface RoutingDecision {
   // Plain-text RU explanation built from dictionary labels and catalog names
   // only. Never contains user input. C must still render it as a text node.
   explanation: string;
+}
+
+export type EvidenceState = 'REQUEST' | 'PROBLEM' | 'EXCLUDED' | 'BACKGROUND' | 'UNCERTAIN';
+export interface EvidenceOccurrence extends RoutingEvidence {
+  field: 'title' | 'problem' | 'solution';
+  start: number;
+  end: number;
+  clause: number;
+  state: EvidenceState;
+  match: 'EXACT' | 'FUZZY';
+  // Positions reference NFC source text (UTF-16); no user excerpts are stored.
+}
+export interface ClassificationAnalysis {
+  sourceInternal: 'RULES_V2' | 'MODEL';
+  occurrences?: EvidenceOccurrence[];
+  detectedCategoryCode: CategoryCode | null;
+  secondaryCategories: CategoryCode[];
+  confidenceBand: ConfidenceBand;
+  needsReview: boolean;
+  reasonCodes: string[];
+  scores: Partial<Record<CategoryCode, number>>;
+  digitalFound?: boolean;
 }
 
 // Optional routing context per A-01 DECISION (required by fixtures R12/R13

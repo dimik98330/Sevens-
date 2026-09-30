@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import argon2 from 'argon2';
 import { openDatabase } from '../src/server/db/client.mjs';
 import { CONSENT_VERSION } from '../src/contracts/enums.mjs';
+import { importAbaiTerritories } from './import-abai-territories.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(here, '..', 'docs', 'fixtures', 'demo-seed.json');
@@ -133,5 +134,10 @@ if (runAsScript) {
 async function migrateIfWanted(db) {
   const { migrate } = await import('./migrate.mjs');
   await migrate(db);
-  return seed(db);
+  if (!['demo', 'test'].includes(process.env.APP_ENV || '')) {
+    return { seedSkipped: true, reason: 'APP_ENV must be demo or test' };
+  }
+  const result = await seed(db);
+  await importAbaiTerritories(db);
+  return result;
 }

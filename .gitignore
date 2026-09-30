@@ -15,6 +15,16 @@ backups/
 # Build / dependencies / local test outputs
 node_modules/
 .next/
+.next*/
+.next-sevens*/
+.next-showcase*/
+.next-assistant*/
+.next-journey*/
+.next-communication*/
+.next-account*/
+.next-auth-seam*/
+.next-navigation*/
+.next-classifier*/
 out/
 dist/
 coverage/
@@ -26,5 +36,10 @@ __pycache__/
 # Native coding-agent worktrees; do not hide all agent configuration indiscriminately
 .muse/worktrees/
 .DS_Store
+*.tsbuildinfo
 
 .data/
+outputs/
+docs/design/screenshots/
+.vercel/
+.render/

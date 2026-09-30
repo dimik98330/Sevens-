@@ -1,13 +1,21 @@
 // Server-side sessions (06 section 4): 32-byte random tokens, only SHA-256
 // hashes stored, 12h lifetime, revocation on logout. CSRF token is bound to
 // the session; neither token lives in localStorage, logs or query strings.
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { SESSION_TTL_HOURS } from '../../contracts/enums.mjs';
 
 export const SESSION_COOKIE = 'sid';
 
 export function sha256Hex(value) {
   return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+// The unguessable HttpOnly session token is the HMAC key. A fixed domain
+// separator keeps the derived token distinct from the stored session hash.
+// Reading /me returns the same token and does not invalidate other tabs.
+export function csrfTokenForSession(token) {
+  if (typeof token !== 'string' || !token) throw new TypeError('Session token required');
+  return createHmac('sha256', token).update('sevens:session-csrf:v1').digest('base64url');
 }
 
 function safeEqualHex(a, b) {
@@ -18,7 +26,7 @@ function safeEqualHex(a, b) {
 
 export async function createSession(db, userId) {
   const token = randomBytes(32).toString('base64url');
-  const csrfToken = randomBytes(32).toString('base64url');
+  const csrfToken = csrfTokenForSession(token);
   const row = await db.query(
     `INSERT INTO sessions(user_id, token_hash, csrf_token_hash, expires_at)
      VALUES($1,$2,$3,now() + make_interval(hours => $4))
@@ -41,11 +49,18 @@ export async function getSession(db, token) {
   if (s.revoked_at) return null;
   if (new Date(s.expires_at).getTime() <= Date.now()) return null;
   if (!s.active) return null;
+  const csrfHash = sha256Hex(csrfTokenForSession(token));
+  if (!safeEqualHex(csrfHash, s.csrf_token_hash)) {
+    // Sessions created before stable CSRF are upgraded on their first read.
+    // They retain their lifetime/identity; only the old tab's token expires.
+    await db.query('UPDATE sessions SET csrf_token_hash=$1 WHERE id=$2', [csrfHash, s.id]);
+    s.csrf_token_hash = csrfHash;
+  }
   return s;
 }
 
 export function verifyCsrf(session, presented) {
-  if (!session || !presented) return false;
+  if (!session || typeof presented !== 'string' || !presented) return false;
   // presented token is the raw value; DB keeps its hash.
   return safeEqualHex(sha256Hex(presented), session.csrf_token_hash);
 }
@@ -62,7 +77,9 @@ export function parseCookies(header) {
     if (idx === -1) continue;
     const name = part.slice(0, idx).trim();
     const value = part.slice(idx + 1).trim();
-    if (name && !(name in out)) out[name] = decodeURIComponent(value);
+    if (name && !(name in out)) {
+      try { out[name] = decodeURIComponent(value); } catch { /* invalid cookie is ignored */ }
+    }
   }
   return out;
 }

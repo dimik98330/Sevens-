@@ -1,4 +1,31 @@
-# D-01 → B: routing interface contract (rules-v1)
+# Routing interface: rules-v2 with optional server LLM
+
+The active production path is `src/server/routing/adapter.mjs` with
+`ROUTING_CLASSIFIER_VERSION=rules-v2` and `CLASSIFIER_MODE=llm`.
+`CLASSIFIER_MODE=rules` disables paid calls. A missing key, invalid provider
+result, deadline, busy instance or exhausted shared budget uses rules-v2.
+Network/provider work runs before the submit transaction. Inside that
+transaction, reserve idempotency, lock the idea, check access/version, then
+apply analysis only when its text hash matches the locked text. Resolve the
+organization from the current catalog there. Never call the model while
+holding idea-row locks.
+
+The pure v2 engine exposes `analyzeRoutingText`, `routeAnalyzed` and
+`routeIdea`; v1 remains available for historical fixtures and rollback.
+The catalog's `rules-v1` is its routing-matrix version, independent of the
+classifier's `rules-v2` / `hybrid-v2` version.
+
+`POST /api/v1/ideas/routing-preview` is authenticated and non-persistent.
+Preview and submit use the same server engine and reusable prepared result.
+It cannot guarantee a later official route if text or catalog changes.
+Public DTO adds `detectedCategoryCode`, `classificationSource`,
+`classificationMethod`, `classifierStatus` and `catalogVersion`; it omits
+analysis internals, raw model quotations and numeric scores.
+The actor's selected category is preserved; conflicts and uncertainty go to
+TRIAGE. A HIGH band is not a calibrated probability. Manual reroutes stay
+`source=HUMAN` and require a reason.
+
+## Legacy rules-v1 reference
 
 Owner: D. Reviewer: B. No AI key, network or database is used or required
 anywhere in this module.
@@ -27,9 +54,9 @@ const decision = routeIdea(
 );
 ```
 
-Run **before** the submit transaction on the submitted text version; inside
-the transaction only check `expectedVersion` (02 section 6). No LLM call
-exists on this path, so `AI_ENABLED=false` changes nothing here.
+Run the pure route function **inside** the submit transaction on the locked
+row after checking access and `expectedVersion`. No LLM call exists in this
+pure module; `AI_ENABLED` is not the classifier switch.
 
 ## Persistence mapping (B)
 
@@ -70,7 +97,8 @@ Unknown/inactive `territoryCode` throws: B keeps the draft, returns 400.
 
 ## Known rules-v1 limits (do not present as accuracy)
 
-Unlisted word forms, typos, negations («не нужен светофор» still matches)
-and paraphrases are not understood; such ideas go LOW/TRIAGE by design.
+Unlisted word forms, typos and paraphrases may produce LOW/TRIAGE. Negation
+is not understood: «не нужен светофор» still matches and can yield HIGH.
+Confidence bands describe dictionary scores, not calibrated correctness.
 `fixtures/routing-cases.json` checks code behavior on 20 cases, it is not
 an accuracy benchmark (04 section 11).

@@ -1,31 +1,54 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/features/shared/api-client";
 import { store } from "@/features/shared/data";
-import { useSession } from "@/features/shared/session";
+import { postLoginPath, useSession } from "@/features/shared/session";
 import { ErrorNotice } from "@/components/ui/Feedback";
+import { useAssistantPage } from "@/features/assistant/context";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordField } from "@/components/auth/PasswordField";
+import { Icon } from "@/components/ui/Icon";
+import { useTranslation } from "@/features/i18n/provider";
+import { safeNextPath } from "@/features/shared/navigation";
 
 export default function RegisterPage() {
+  return <Suspense><RegisterForm /></Suspense>;
+}
+
+function RegisterForm() {
+  const { t: tr, intlLocale } = useTranslation();
   const router = useRouter();
-  const { refresh } = useSession();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
+  const { user, checked, refresh } = useSession();
+  const navigating = useRef(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  useAssistantPage({ page: "register", saving: busy, navigationBlocked: busy, errorCode: error?.detail?.code, targets: ["auth-register", "auth-email", "auth-password"] });
+
+  useEffect(() => {
+    if (!checked || !user || busy || navigating.current) return;
+    navigating.current = true;
+    router.replace(safeNextPath(nextPath, user.role) ?? postLoginPath(user.role));
+    router.refresh();
+  }, [busy, checked, nextPath, router, user]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy || !checked || navigating.current) return;
     setBusy(true);
     setError(null);
     try {
-      await store.register({ displayName: name, email: email.trim(), password, consentAccepted: consent });
+      const { data } = await store.register({ displayName: name, email: email.trim(), password, consentAccepted: false });
       await refresh();
-      router.push("/my");
+      navigating.current = true;
+      const role = (data as { role?: string }).role ?? "CITIZEN";
+      router.replace(safeNextPath(nextPath, role) ?? postLoginPath(role));
       router.refresh();
     } catch (err) {
       setError(err as ApiError);
@@ -35,61 +58,64 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="narrow">
-      <div className="card">
-        <h1>Регистрация жителя</h1>
-        {error && <ErrorNotice error={error} id="register-error" />}
-        <form onSubmit={submit} noValidate>
-          <div className="field">
-            <label htmlFor="name">Имя</label>
-            <input id="name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} aria-invalid={error ? "true" : undefined} aria-describedby={error ? "register-error" : undefined} />
+    <AuthShell mode="register" nextPath={nextPath}>
+      <h1>{tr("Создать аккаунт")}</h1>
+
+      {error && <ErrorNotice error={error} id="register-error" />}
+      <form className="auth-form" onSubmit={submit} noValidate data-assistant-target="auth-register">
+        <div className="auth-field field">
+          <label htmlFor="name">{tr("Имя и фамилия")}</label>
+          <div className="auth-input-wrap">
+            <Icon name="user" size={18} />
+            <input
+              id="name"
+              type="text"
+              autoComplete="name"
+              placeholder={tr("Имя Фамилия")}
+              required
+              disabled={busy}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "register-error" : undefined}
+            />
           </div>
-          <div className="field">
-            <label htmlFor="email">Email</label>
+        </div>
+        <div className="auth-field field" data-assistant-target="auth-email">
+          <label htmlFor="email">{tr("Электронная почта")}</label>
+          <div className="auth-input-wrap">
+            <Icon name="mail" size={18} />
             <input
               id="email"
               type="email"
               autoComplete="email"
+              placeholder="name@example.com"
               required
+              disabled={busy}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-invalid={error ? "true" : undefined}
               aria-describedby={error ? "register-error" : undefined}
             />
           </div>
-          <div className="field">
-            <label htmlFor="password">Пароль</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-describedby="pw-h"
-            />
-            <p className="hint" id="pw-h">
-              12–128 символов, разрешены пробелы и Unicode.
-            </p>
-          </div>
-          <div className="field">
-            <label htmlFor="consent" className="check-row">
-              <input id="consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} aria-invalid={error ? "true" : undefined} aria-describedby={error ? "register-error" : undefined} />
-              <span>Соглашаюсь на обработку данных в рамках демонстрационного сервиса</span>
-            </label>
-          </div>
-          <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
-            {busy ? "Регистрируем…" : "Зарегистрироваться"}
-          </button>
-        </form>
-        <p className="muted">
-          Регистрируемся только как житель. Сотрудники создаются через seed/служебный CLI. Email в MVP не
-          подтверждается и не выдаёт пользователя за идентифицированного государством.
-        </p>
-        <p>
-          Уже есть аккаунт? <Link href="/login">Войти</Link>
-        </p>
-      </div>
-    </div>
+        </div>
+        <div className="auth-field field" data-assistant-target="auth-password">
+          <label htmlFor="password">{tr("Пароль")}</label>
+          <PasswordField
+            id="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            required
+            disabled={busy}
+          />
+        </div>
+        <button className="auth-submit" type="submit" disabled={busy || !checked} aria-busy={busy}>
+          <span>{busy ? tr("Регистрируем…") : tr("Зарегистрироваться")}</span>
+          <span className="auth-submit-icon" aria-hidden="true"><Icon name="arrow" size={20} /></span>
+        </button>
+      </form>
+      <p className="auth-account-note">{tr("Доступ специалистам предоставляет администратор платформы.")}</p>
+    </AuthShell>
   );
 }

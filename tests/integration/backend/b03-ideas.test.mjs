@@ -13,9 +13,7 @@ import { seed } from '../../../scripts/seed.mjs';
 import { createServer } from '../../../src/server/http/app.mjs';
 
 const ORIGIN = 'http://localhost:3000';
-const PNG_1PX = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64');
+import { VALID_PNG as PNG_1PX } from './helpers/valid-png.mjs';
 
 const IDEA_TEXT = {
   title: 'Умные светофоры рядом со школой',
@@ -87,7 +85,7 @@ async function createFullDraft(auth) {
 before(async () => {
   uploadDir = mkdtempSync(path.join(tmpdir(), 'uploads-'));
   process.env.UPLOAD_DIR = uploadDir;
-  db = await openDatabase();
+  db = await openDatabase({ databaseUrl: null, pgliteDir: null });
   await resetDb(db);
   await migrate(db);
   await seed(db, { demoPassword: 'test-Seed-12-chars' });
@@ -160,7 +158,7 @@ describe('B-03 drafts and submit', () => {
     assert.equal(dec.rows[0].c, 1);
     const ev = await db.query(`SELECT type FROM idea_events WHERE idea_id=$1 ORDER BY created_at, id`, [draft.id]);
     assert.deepEqual(ev.rows.map((r) => r.type), ['CREATED', 'SUBMITTED']);
-    const nt = await db.query('SELECT kind FROM notifications WHERE idea_id=$1', [draft.id]);
+    const nt = await db.query('SELECT kind FROM notifications WHERE idea_id=$1 AND recipient_id=(SELECT author_id FROM ideas WHERE id=$1)', [draft.id]);
     assert.deepEqual(nt.rows.map((r) => r.kind), ['IDEA_REGISTERED']);
     const au = await db.query(`SELECT action FROM audit_events WHERE entity_id=$1`, [draft.id]);
     assert.ok(au.rows.map((r) => r.action).includes('idea.submit'));
@@ -322,6 +320,8 @@ describe('B-03 uploads (SEC-04/SEC-08)', () => {
     };
     const svg = await send(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), 'x.png');
     assert.equal(svg.status, 415);
+    const truncatedPng = await send(PNG_1PX.subarray(0, 8), 'truncated.png');
+    assert.equal(truncatedPng.status, 415);
     const big = await send(Buffer.alloc(5 * 1024 * 1024 + 1, 1), 'big.png');
     assert.equal(big.status, 413);
     for (let n = 0; n < 3; n++) {

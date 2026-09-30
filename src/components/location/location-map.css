@@ -1,0 +1,180 @@
+.location-map {
+  border: 1px solid var(--border, #d5d1c9);
+  border-radius: 8px;
+  overflow: hidden;
+  color: var(--text, #252b2d);
+  background: var(--surface, #f9f7f2);
+}
+.location-map__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 17px;
+}
+.location-map__eyebrow {
+  display: block;
+  font-size: 10px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted, #646866);
+}
+.location-map__heading h3 {
+  margin: 5px 0 0;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+.location-map__provider {
+  border: 1px solid var(--border, #d5d1c9);
+  padding: 5px 9px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+}
+.location-map__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 22px 16px;
+}
+.location-map button {
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid var(--border, #c9c8c2);
+  border-radius: 4px;
+  color: var(--text, #252b2d);
+  background: var(--surface, #fffdf8);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.location-map button:hover:not(:disabled) {
+  border-color: var(--accent, #965333);
+  background: #eee9df;
+}
+.location-map button:focus-visible {
+  outline: 3px solid var(--accent, #965333);
+  outline-offset: 3px;
+}
+.location-map button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+.location-map button[aria-pressed="true"] {
+  color: #fffdf8;
+  border-color: #363e3f;
+  background: #363e3f;
+}
+.location-map__viewport {
+  position: relative;
+  min-height: 290px;
+  border-block: 1px solid var(--border, #d5d1c9);
+  background: #eeede7;
+}
+.location-map__viewport--ready {
+  height: clamp(320px, 42vw, 460px);
+}
+.location-map__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.location-map__canvas[aria-hidden="true"] {
+  visibility: hidden;
+}
+.location-map__fallback {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 290px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  background: #eeede7;
+}
+.location-map__fallback svg {
+  color: #787c75;
+}
+.location-map__fallback strong {
+  font-size: 16px;
+  line-height: 1.4;
+}
+.location-map__fallback p {
+  max-width: 390px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #5d625d;
+}
+.location-map__footer {
+  padding: 16px 22px 19px;
+}
+.location-map__selection {
+  margin: 0 0 7px;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.location-map__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted, #5e6562);
+}
+.location-map__gesture {
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted, #5e6562);
+}
+.location-map__error {
+  margin: 12px 0 0;
+  color: #993d2e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.location-map__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.location-map .location-map__confirm {
+  background: var(--accent, #965333);
+  border-color: var(--accent, #965333);
+  color: #fff;
+}
+.location-map .location-map__confirm:hover:not(:disabled) {
+  background: #794126;
+  border-color: #794126;
+}
+@media (max-width: 480px) {
+  .location-map__heading,
+  .location-map__footer {
+    padding-inline: 15px;
+  }
+  .location-map__tools {
+    padding-inline: 15px;
+    gap: 7px;
+  }
+  .location-map__tools button {
+    flex: 1 0 calc(33% - 7px);
+    padding-inline: 7px;
+  }
+  .location-map__actions button {
+    flex: 1 1 auto;
+  }
+  .location-map__eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.07em;
+  }
+}

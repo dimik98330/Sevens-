@@ -1,0 +1,131 @@
+.sevens-assistant {
+  --assistant-green: var(--brand-forest);
+  --assistant-cream: var(--brand-paper);
+  --assistant-copper: var(--brand-peach);
+  position: relative;
+  z-index: 80;
+  font-family: "Manrope Variable", "Inter Variable", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.sevens-assistant button { cursor: pointer; }
+.sevens-assistant button:disabled { cursor: not-allowed; }
+.sevens-assistant-launcher {
+  position: fixed; right: 24px; bottom: max(24px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 8px 16px 8px 9px;
+  border: 1px solid #ffffff25; border-radius: 17px; background: var(--assistant-green); color: #fffef9;
+  box-shadow: 0 8px 28px #192d3626, 0 2px 7px #192d361a; text-align: left;
+}
+.sevens-assistant-launcher:hover { background: #314b43; transform: translateY(-2px); }
+.sevens-assistant-launcher > span:nth-child(2) { font-size: 13px; font-weight: 600; line-height: 1.35; }
+.sevens-assistant-launcher small { display: block; margin-top: 3px; color: #c5cec1; font-size: 11px; letter-spacing: .12em; font-weight: 500; }
+.sevens-assistant-symbol { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #e0b8993b; border-radius: 12px; background: #fff8e910; color: #e3a484; }
+.sevens-assistant-symbol svg { width: 23px; height: 28px; }
+.sevens-assistant-launcher-arrow { display: grid; place-items: center; width: 26px; height: 30px; color: #d8e0d6; margin-left: 8px; }
+.sevens-assistant-invite {
+  position: fixed; right: 24px; bottom: max(102px, calc(env(safe-area-inset-bottom) + 82px)); width: 272px;
+  display: flex; gap: 4px; align-items: flex-start; padding: 7px; border: 1px solid #dadbd2; border-radius: 13px;
+  background: var(--assistant-cream); color: #253b36; box-shadow: 0 8px 28px #24373115;
+  animation: sevens-assistant-arrive .22s ease-out;
+}
+.sevens-assistant-invite::after { content: ""; position: absolute; bottom: -6px; right: 31px; width: 11px; height: 11px; background: var(--assistant-cream); border-right: 1px solid #dadbd2; border-bottom: 1px solid #dadbd2; transform: rotate(45deg); }
+.sevens-assistant-invite-open { flex: 1; padding: 10px; border: 0; background: transparent; text-align: left; min-height: 60px; }
+.sevens-assistant-invite-open strong { display: block; font-size: 13px; font-weight: 620; }
+.sevens-assistant-invite-open span { display: block; margin-top: 3px; font-size: 11px; line-height: 1.6; color: #69745f; }
+.sevens-assistant-icon-button { display: grid; place-items: center; flex: none; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 9px; background: transparent; color: inherit; }
+.sevens-assistant-icon-button:hover { background: #ffffff18; }
+.sevens-assistant-invite .sevens-assistant-icon-button:hover { background: #eaece4; }
+.sevens-assistant-panel {
+  position: fixed; right: 24px; bottom: 24px; display: flex; flex-direction: column;
+  width: 400px; max-width: calc(100vw - 48px); height: min(620px, calc(100dvh - 48px));
+  overflow: hidden; border: 1px solid #d4d9ce; border-radius: 20px; background: var(--assistant-cream);
+  color: #25332f; box-shadow: 0 16px 70px #192d362b, 0 3px 10px #192d3612;
+  animation: sevens-assistant-arrive .2s ease-out;
+}
+.sevens-assistant-header { display: flex; align-items: center; gap: 12px; flex: none; padding: 16px 12px 17px 20px; background: var(--assistant-green); color: #fffef8; }
+.sevens-assistant-header-mark { display: grid; place-items: center; width: 39px; height: 43px; color: #dea27f; }
+.sevens-assistant-header-mark svg { width: 28px; height: 32px; }
+.sevens-assistant-heading { flex: 1; min-width: 0; }
+.sevens-assistant-heading h2 { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.4; letter-spacing: -.02em; }
+.sevens-assistant-heading h2 span { font-weight: 400; color: #b9c9bc; margin-left: 3px; }
+.sevens-assistant-heading p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; color: #bfcfc0; }
+.sevens-assistant-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex: none; padding: 8px 15px; border-bottom: 1px solid #e5e7de; }
+.sevens-assistant-language { display: flex; gap: 2px; padding: 2px; border: 1px solid #e0e4d8; border-radius: 8px; background: #eeefe8; }
+.sevens-assistant-language button { min-width: 44px; min-height: 44px; padding: 6px 8px; background: transparent; border: 0; border-radius: 5px; color: #58685a; font-size: 11px; font-weight: 600; }
+.sevens-assistant-language button[aria-pressed=true] { background: #fffefa; color: #344e41; box-shadow: 0 1px 3px #25332f14; }
+.sevens-assistant-clear { display: flex; align-items: center; justify-content: flex-end; gap: 6px; border: 0; background: transparent; padding: 8px 3px; min-height: 44px; font-size: 11px; color: #69745f; }
+.sevens-assistant-clear:hover { color: #a35c3e; }
+.sevens-assistant-conversation { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px; scrollbar-width: thin; scrollbar-color: #cad3c5 transparent; }
+.sevens-assistant-welcome { padding: 0 4px; }
+.sevens-assistant-welcome-art { display: grid; place-items: center; position: relative; width: 45px; height: 38px; margin: 0 0 8px; color: #b46b4b; }
+.sevens-assistant-welcome-art::before { content: ""; position: absolute; inset: 3px; border: 1px solid #dbe1d3; background: #f0f2e9; border-radius: 12px; transform: rotate(-8deg); }
+.sevens-assistant-welcome-art svg { position: relative; width: 20px; height: 25px; }
+.sevens-assistant-welcome-art i { position: absolute; right: -7px; top: 11px; width: 7px; height: 7px; border-radius: 50%; border: 1px solid #c7d0c0; background: #e4e9db; }
+.sevens-assistant-welcome-art i:last-child { right: 3px; top: 33px; width: 4px; height: 4px; background: #b0805c; border: 0; }
+.sevens-assistant-eyebrow { display: block; color: #697760; font-size: 11px; line-height: 1.5; letter-spacing: .1em; font-weight: 600; margin-bottom: 9px; }
+.sevens-assistant-welcome h3 { font-size: 22px; line-height: 1.25; font-weight: 620; letter-spacing: -.035em; margin: 0 0 8px; }
+.sevens-assistant-welcome > p { color: #6b7763; font-size: 12px; line-height: 1.7; margin: 0 0 14px; }
+.sevens-assistant-quick { display: flex; flex-direction: column; gap: 6px; }
+.sevens-assistant-quick button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 45px; padding: 10px 12px; border: 1px solid #e0e4d8; border-radius: 8px; background: #f5f6ef; color: #5a6b5c; text-align: left; font-size: 12px; line-height: 1.5; }
+.sevens-assistant-quick button svg { color: #a0ab98; }
+.sevens-assistant-quick button:hover { border-color: #c5d0bb; background: #ebefe1; }
+.sevens-assistant-messages { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.sevens-assistant-message { width: 100%; min-width: 0; }
+.sevens-assistant-message[data-role=user] { align-self: flex-end; width: auto; max-width: 90%; padding: 11px 14px; border-radius: 12px 12px 3px 12px; background: #eef0e7; color: #44583f; border: 1px solid #dfe5d5; }
+.sevens-assistant-message p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.8; margin: 0; }
+.sevens-assistant-message-label { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; color: #6a775f; font-size: 11px; letter-spacing: .01em; }
+.sevens-assistant-label-dot { width: 5px; height: 5px; border-radius: 50%; background: #af784f; }
+.sevens-assistant-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.sevens-assistant-actions:empty { display: none; }
+.sevens-assistant-actions button { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 9px 12px; border: 1px solid #d6dfce; border-radius: 7px; background: #f2f4e9; color: #567347; font-size: 11px; line-height: 1.5; text-align: left; }
+.sevens-assistant-actions button:hover { background: #e8eedc; border-color: #b9c9ad; }
+.sevens-assistant-loading { display: flex; align-items: center; gap: 9px; min-height: 48px; margin-top: 15px; font-size: 11px; color: #6b775f; }
+.sevens-assistant-loading > span:first-child { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid #d7ddcf; border-top-color: #a56d47; animation: sevens-assistant-spin .8s linear infinite; }
+.sevens-assistant-loading button { margin-left: auto; min-height: 44px; background: transparent; border: 0; padding: 8px; color: #8a573b; font-size: 11px; }
+.sevens-assistant-notice { margin-top: 18px; padding: 11px 13px; background: #f5eee4; border: 1px solid #e8dac8; border-radius: 8px; color: #7c6447; font-size: 11px; line-height: 1.7; }
+.sevens-assistant-notice p { margin: 0; }
+.sevens-assistant-notice button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; padding: 7px 0 0; background: transparent; color: #8a573b; font-size: 11px; text-align: left; }
+.sevens-assistant-followups { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding-top: 17px; }
+.sevens-assistant-followups button { padding: 10px 12px; min-height: 44px; border: 1px solid #e4e5dc; border-radius: 8px; background: #fcfcf8; color: #68765b; font-size: 11px; line-height: 1.5; text-align: left; }
+.sevens-assistant-followups button:hover { color: #536b43; border-color: #c5d0b8; background: #f3f5eb; }
+.sevens-assistant-compose { flex: none; padding: 14px 15px 12px; border-top: 1px solid #e5e7de; background: #fbfaf6; }
+.sevens-assistant-input-wrap { display: flex; align-items: flex-end; gap: 8px; padding: 10px 10px 10px 13px; border: 1px solid #d4dccd; background: #fffefa; border-radius: 11px; box-shadow: 0 2px 4px #34443404; }
+.sevens-assistant-input-wrap:focus-within { border-color: #b89975; box-shadow: 0 0 0 3px #b05b3d10; }
+.sevens-assistant-input-wrap textarea { flex: 1; width: 100%; min-width: 0; min-height: 44px; max-height: 96px; margin: 0; padding: 2px 0; resize: none; border: 0; background: transparent; color: #3a4b3a; font-size: 13px; line-height: 1.6; outline: none; box-shadow: none; }
+.sevens-assistant-input-wrap textarea::placeholder { color: #697760; }
+.sevens-assistant-send { display: grid; place-items: center; flex: none; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px; background: var(--assistant-copper); color: var(--brand-ink); }
+.sevens-assistant-send:hover { background: var(--brand-peach-hover); }
+.sevens-assistant-send:disabled { background: #eae9df; color: #aeb1a2; opacity: 1; }
+.sevens-assistant-privacy { font-size: 11px; line-height: 1.6; color: #68765b; margin: 8px 1px 0; }
+.sevens-assistant-highlight { outline: 3px solid #b05b3d !important; outline-offset: 6px !important; box-shadow: 0 0 0 9px #b05b3d14 !important; scroll-margin-block: 100px; }
+/* Space after the existing page prevents the closed launcher covering final actions. */
+.sevens-assistant-page-space { padding-bottom: 104px; }
+.sevens-assistant-page-space:has(.sevens-home) { padding-bottom: 0; }
+@keyframes sevens-assistant-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sevens-assistant-spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .sevens-assistant-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); min-height: 54px; padding: 5px; border-radius: 14px; }
+  .sevens-assistant-launcher > span:nth-child(2) { display: none; }
+  .sevens-assistant-symbol { width: 42px; height: 42px; }
+  .sevens-assistant-launcher-arrow { display: none; }
+  .sevens-assistant-invite { right: 16px; bottom: max(89px, calc(env(safe-area-inset-bottom) + 73px)); }
+  .sevens-assistant-panel { inset: 0; bottom: auto; width: 100%; max-width: none; height: 100dvh; border: 0; border-radius: 0; }
+  .sevens-assistant-header { padding: calc(14px + env(safe-area-inset-top)) 12px 14px 18px; }
+  .sevens-assistant-heading p { font-size: 11px; }
+  .sevens-assistant-conversation { padding: 24px 20px 20px; }
+  .sevens-assistant-welcome { padding-top: 10px; }
+  .sevens-assistant-welcome-art { width: 72px; height: 64px; margin-bottom: 21px; }
+  .sevens-assistant-welcome-art svg { width: 28px; height: 33px; }
+  .sevens-assistant-welcome-art i:last-child { top: 50px; }
+  .sevens-assistant-welcome h3 { max-width: 300px; font-size: 25px; }
+  .sevens-assistant-welcome > p { font-size: 13px; }
+  .sevens-assistant-quick button { min-height: 48px; font-size: 13px; }
+  .sevens-assistant-message p { font-size: 14px; }
+  .sevens-assistant-compose { padding: 12px 15px calc(12px + env(safe-area-inset-bottom)); }
+  .sevens-assistant-input-wrap textarea { font-size: 16px; }
+  .sevens-assistant-privacy { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sevens-assistant *, .sevens-assistant *::before, .sevens-assistant *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .sevens-assistant-launcher:hover { transform: none; }
+}
