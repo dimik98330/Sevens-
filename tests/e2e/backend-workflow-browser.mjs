@@ -39,7 +39,7 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   page.on('dialog',(dialog)=>dialog.accept());
   await page.goto(base+'/login');
-  await page.getByLabel('Email',{exact:true}).fill('transport@example.test');
+  await page.getByLabel('Электронная почта',{exact:true}).fill('transport@example.test');
   await page.getByLabel('Пароль',{exact:true}).fill(config.DEMO_PASSWORD);
   await page.getByRole('button',{name:'Войти',exact:true}).click();
   await page.waitForURL(/\/staff$/);

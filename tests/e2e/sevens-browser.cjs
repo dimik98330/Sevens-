@@ -91,7 +91,7 @@ async function snap(page, name, widths = [1440, 390]) {
 }
 async function login(page, who) {
   await page.goto(origin + "/login");
-  await page.getByLabel("Email", { exact: true }).fill(who);
+  await page.getByLabel("Электронная почта", { exact: true }).fill(who);
   await page.getByLabel("Пароль", { exact: true }).fill(config.DEMO_PASSWORD);
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await page.waitForURL(/\/(my|staff)$/);
@@ -175,13 +175,12 @@ async function transition(page, label, comment) {
       await page.goto(origin + "/register");
       await snap(page, "register");
       await page
-        .getByLabel("Имя", { exact: true })
+        .getByLabel("Имя и фамилия", { exact: true })
         .fill("Проверочный житель Sevens");
-      await page.getByLabel("Email", { exact: true }).fill(email);
+      await page.getByLabel("Электронная почта", { exact: true }).fill(email);
       await page
         .getByLabel("Пароль", { exact: true })
         .fill(config.DEMO_PASSWORD);
-      await page.getByRole("checkbox").check();
       await page
         .getByRole("button", { name: "Зарегистрироваться", exact: true })
         .click();
@@ -293,17 +292,17 @@ async function transition(page, label, comment) {
     await login(staffPage, "transport@example.test");
     await snap(staffPage, "staff-queue", [1440, 768, 390]);
     await staffPage
-      .getByLabel("Текстовый поиск", { exact: true })
+      .getByLabel("Поиск по номеру или тексту", { exact: true })
       .fill(report.publicNumber);
     await staffPage
-      .getByRole("button", { name: "Применить", exact: true })
+      .getByRole("button", { name: "Применить фильтры", exact: true })
       .click();
     await staffPage.waitForURL(
       (url) => url.searchParams.get("q") === report.publicNumber,
     );
     await stable(staffPage);
     await staffPage
-      .locator(`table.queue a[href^="/staff/${report.ideaId}?"]`)
+      .getByRole("link", { name: `Открыть карточку: ${report.publicNumber}`, exact: true })
       .click();
     await staffPage.waitForURL(
       (url) => url.pathname === `/staff/${report.ideaId}`,
