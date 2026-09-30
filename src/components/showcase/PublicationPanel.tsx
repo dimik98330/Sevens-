@@ -131,8 +131,8 @@ export function PublicationPanel({ ideaId, source, staff = false, initialOpen = 
         </button>
       </div>
       {publication?.state === "PUBLISHED" && <Link className="publication-open" href={`/dashboard/${ideaId}`}>{tr("Открыть общую карточку")}<Icon name="arrow" size={16} /></Link>}
-      {publication?.state === "PRIVATE" && !staff && <p className="publication-flow-note">{tr("Ваша заявка уже доступна в кабинете. Для общей ленты подготовьте публичный текст и дайте отдельное согласие. После проверки сотрудником карточка появится в «Идеях региона».")}</p>}
-      {publication?.state === "PENDING" && <p className="publication-flow-note" role="status">{tr(staff ? "Автор дал согласие. Проверьте публичный текст и опубликуйте карточку — после этого она станет видна жителям." : "Запрос на публикацию отправлен сотруднику вашего направления. Пока карточка не прошла проверку, она не отображается в общей ленте. Статус рассмотрения самой идеи отслеживается отдельно.")}</p>}
+      {publication?.state === "PRIVATE" && !staff && open && <p className="publication-flow-note">{tr("Ваша заявка уже доступна в кабинете. Для общей ленты подготовьте публичный текст и дайте отдельное согласие. После проверки сотрудником карточка появится в «Идеях региона».")}</p>}
+      {publication?.state === "PENDING" && (open || staff) && <p className="publication-flow-note" role="status">{tr(staff ? "Автор дал согласие. Проверьте публичный текст и опубликуйте карточку — после этого она станет видна жителям." : "Запрос на публикацию отправлен сотруднику вашего направления. Пока карточка не прошла проверку, она не отображается в общей ленте. Статус рассмотрения самой идеи отслеживается отдельно.")}</p>}
       {message && <p className="publication-feedback" role="status">{tr(message)}</p>}
       {error && <ErrorNotice error={error} onRetry={() => void load()} />}
       {open && publication && (

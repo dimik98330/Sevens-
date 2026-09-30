@@ -1,5 +1,6 @@
 "use client";
 import { PublicationPanel } from "@/components/showcase/PublicationPanel";
+import "./idea-detail.css";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, use, useCallback, useEffect, useState } from "react";
@@ -114,10 +115,6 @@ function IdeaDetailPageContent({
 
   if (!checked || user?.role !== "CITIZEN") return null;
 
-  const lastQ = idea
-    ? [...idea.comments].reverse().find((c) => c.visibility === "PUBLIC" && c.kind === "CLARIFICATION_QUESTION")
-    : undefined;
-
   const sendAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!idea) return;
@@ -168,17 +165,14 @@ function IdeaDetailPageContent({
                 )}
               </div>
             </header>
+            <div className="citizen-detail-overview">
             <section className="citizen-detail-next-step" data-status={idea.status} aria-labelledby="idea-next-step">
               <span className="citizen-detail-next-step-icon" aria-hidden="true"><Icon name={NEXT_STEPS[idea.status].icon} size={23} /></span>
               <div>
-                <h2 id="idea-next-step">{NEXT_STEPS[idea.status].title}</h2>
-                <p>{NEXT_STEPS[idea.status].text}</p>
+                <h2 id="idea-next-step">{tr("Что дальше")}</h2>
+                <p>{tr(NEXT_STEPS[idea.status].text)}</p>
                 {isDraft ? (
                   <Link className="btn btn-primary" href={`/ideas/new?draft=${id}${returnTo === "/my" ? "" : `&returnTo=${encodeURIComponent(returnTo)}`}`}>{tr("Продолжить черновик")}<Icon name="arrow" size={18} /></Link>
-                ) : needsInfo ? (
-                  <a className="btn btn-primary" href="#idea-answer">{tr("Ответить на вопрос")}<Icon name="arrow" size={18} /></a>
-                ) : (idea.status === "COMPLETED" || idea.status === "REJECTED") ? (
-                  <a className="citizen-detail-action" href="#idea-dialog">{tr("Прочитать ответ")}<Icon name="arrow" size={16} /></a>
                 ) : null}
               </div>
             </section>
@@ -188,15 +182,16 @@ function IdeaDetailPageContent({
                 <div><dt>{tr("Ответственный")}</dt><dd>{idea.assigneeDisplayName ?? idea.assignee?.name ?? tr("Пока не назначен")}</dd></div>
               </dl>
             )}
+            </div>
             <nav className="citizen-detail-navigation" aria-label={tr("Разделы идеи")}>
               <a href="#idea-content">{tr("Содержание")}</a>
               {(idea.locationText || idea.locationGeometry) && <a href="#idea-location">{tr("Место")}</a>}
-              <a href="#idea-dialog">{tr("Диалог")}</a>
+              <a className={needsInfo || idea.status === "COMPLETED" || idea.status === "REJECTED" ? "citizen-detail-response-link" : undefined} href={needsInfo ? "#idea-answer" : "#idea-dialog"}>{tr(needsInfo ? "Ответить на вопрос" : idea.status === "COMPLETED" || idea.status === "REJECTED" ? "Прочитать ответ" : "Диалог")}</a>
               <a href="#idea-history">{tr("История")}</a>
             </nav>
             <section className="citizen-detail-section" id="idea-content" aria-labelledby="idea-content-title">
               <h2 id="idea-content-title">{tr("Содержание идеи")}</h2>
-              <MessageOrigin name={idea.authorDisplayName ?? (user.role === "CITIZEN" ? user.displayName : null)} own={user.role === "CITIZEN"} />
+              <div className="citizen-detail-author"><MessageOrigin name={idea.authorDisplayName ?? (user.role === "CITIZEN" ? user.displayName : null)} own={user.role === "CITIZEN"} /></div>
               <div className="citizen-detail-text">
                 <h3>{tr("Проблема")}</h3>
                 <p>{idea.problem || tr("Описание проблемы пока не добавлено.")}</p>
@@ -228,20 +223,15 @@ function IdeaDetailPageContent({
                 )}
               </section>
             )}
-            {!isDraft && idea.routing && <div className="citizen-detail-route"><RouteCard route={idea.routing} /></div>}
-            {!isDraft && <PublicationPanel ideaId={id} source={{ title: idea.title, problem: idea.problem, solution: idea.solution, expectedBenefit: idea.expectedBenefit ?? "" }} initialOpen={searchParams.get("publication") === "1"} />}
             <section className="citizen-detail-section" id="idea-dialog" aria-labelledby="idea-dialog-title" data-assistant-target="idea-dialog">
               <h2 id="idea-dialog-title">{tr("Диалог со специалистом")}</h2>
-              {idea.comments.some((c) => c.visibility === "PUBLIC") && <MessageThread comments={idea.comments} currentUserId={user.id} />}
+              {idea.comments.some((c) => c.visibility === "PUBLIC") && <div className="citizen-detail-conversation"><MessageThread comments={idea.comments} currentUserId={user.id} /></div>}
               {!idea.comments.some((c) => c.visibility === "PUBLIC") && (
                 <p className="muted">{isDraft ? tr("После отправки идеи здесь появятся вопросы и ответы специалиста.") : tr("Сообщений пока нет. Ответы специалиста появятся здесь и в уведомлениях.")}</p>
               )}
             {needsInfo && (
               <section className="citizen-detail-clarification" id="idea-answer" aria-labelledby="idea-answer-title" data-assistant-target="citizen-clarification">
                 <h3 id="idea-answer-title">{tr("Ответить на уточнение")}</h3>
-                <div className="notice warn">
-                  {lastQ?.body ?? tr("Специалист запросил уточнение.")}
-                </div>
                 <form onSubmit={sendAnswer}>
                   <div className="field">
                     <label htmlFor="answer">{tr("Ваш ответ")}</label>
@@ -271,6 +261,8 @@ function IdeaDetailPageContent({
               </section>
             )}
             </section>
+            {!isDraft && idea.routing && <details className="citizen-detail-routing"><summary>{tr("Почему это направление?")}<Icon name="chevron" size={18} /></summary><RouteCard route={idea.routing} showHeading={false} /></details>}
+            {!isDraft && <PublicationPanel ideaId={id} source={{ title: idea.title, problem: idea.problem, solution: idea.solution, expectedBenefit: idea.expectedBenefit ?? "" }} initialOpen={searchParams.get("publication") === "1"} />}
             <section className="citizen-detail-section" id="idea-history" aria-labelledby="idea-history-title" data-assistant-target="idea-history">
               <h2 id="idea-history-title">{isDraft ? tr("История черновика") : tr("История рассмотрения")}</h2>
               <Timeline items={idea.timeline} />

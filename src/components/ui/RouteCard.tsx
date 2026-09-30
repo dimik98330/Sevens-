@@ -35,7 +35,7 @@ const TAG_LABELS: Record<string, string> = { ...CATEGORIES, SMART_CITY: "Умн�
 
 // Узнаваемый элемент «Почему это направление?» (05 §11).
 // Объяснение рендерится текстовым узлом; confidence — словами, не процентами.
-export function RouteCard({ route }: { route: RouteInfo | null | undefined }) {
+export function RouteCard({ route, showHeading = true }: { route: RouteInfo | null | undefined; showHeading?: boolean }) {
   const ru = useUiMessages();
   const { t: tr, intlLocale } = useTranslation();
   if (!route) return null;
@@ -44,8 +44,8 @@ export function RouteCard({ route }: { route: RouteInfo | null | undefined }) {
   const detected = route.detectedCategoryCode;
   const differs = Boolean(detected && detected !== route.effectiveCategoryCode);
   return (
-    <section className="route-card" aria-labelledby="route-h">
-      <h3 id="route-h">{tr("Почему это направление?")}</h3>
+    <section className="route-card" aria-labelledby={showHeading ? "route-h" : undefined} aria-label={showHeading ? undefined : tr("Почему это направление?")}>
+      {showHeading && <h3 id="route-h">{tr("Почему это направление?")}</h3>}
       <p>
         <strong>{tr("Категория заявки:")}</strong> {tr(CATEGORIES[route.effectiveCategoryCode] ?? route.effectiveCategoryCode)}
       </p>
