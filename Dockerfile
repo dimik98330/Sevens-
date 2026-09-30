@@ -30,6 +30,7 @@ COPY db ./db
 COPY scripts ./scripts
 COPY src/server ./src/server
 COPY src/contracts ./src/contracts
+COPY src/domain/territories/abai.json ./src/domain/territories/abai.json
 COPY docs/fixtures ./docs/fixtures
 # Runs migrations then the idempotent demo seed (APP_ENV=demo/test only).
 CMD ["sh", "-c", "node scripts/migrate.mjs && node scripts/seed.mjs"]
@@ -59,8 +60,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./package.json
 COPY src/server ./src/server
 COPY src/contracts ./src/contracts
+COPY src/domain/territories/abai.json ./src/domain/territories/abai.json
 COPY scripts/serve.mjs ./scripts/serve.mjs
+COPY scripts/import-abai-territories.mjs ./scripts/import-abai-territories.mjs
 COPY src/features/assistant ./src/features/assistant
+COPY src/locales/ui.json ./src/locales/ui.json
 COPY scripts/cleanup-storage.mjs ./scripts/cleanup-storage.mjs
 COPY db/migrations ./db/migrations
 COPY --from=build /app/dist/routing ./dist/routing

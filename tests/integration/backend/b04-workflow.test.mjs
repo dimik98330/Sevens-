@@ -412,4 +412,60 @@ describe('B-04 reroute (E2E-05/E2E-09)', () => {
       await db.query(`UPDATE organizations SET active=TRUE WHERE code='DEMO_ECOLOGY'`);
     }
   });
+
+  it('owned list reflects current organization and assignee after assignment and reroute without leaking private data', async () => {
+    const author = await registerCitizen('mine-responsibility');
+    const outsider = await registerCitizen('mine-responsibility-outsider');
+    const idea = await submitFreshIdea(author);
+    const staff = await loginAs('transport@example.test');
+    const admin = await loginAs('admin@example.test');
+    const ownedRow = async () => {
+      const response = await req('GET', '/api/v1/ideas?scope=mine', author);
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.equal(result.meta.total, 1);
+      assert.equal(result.data.length, 1);
+      assert.equal(result.data[0].id, idea.id);
+      for (const forbidden of ['organizationId', 'assigneeId', 'authorEmail', 'comments', 'internalComments']) {
+        assert.ok(!Object.hasOwn(result.data[0], forbidden), forbidden);
+      }
+      return result.data[0];
+    };
+    const unassigned = await ownedRow();
+    assert.equal(unassigned.organizationCode, 'DEMO_TRANSPORT');
+    assert.equal(unassigned.assigneeDisplayName, null);
+
+    const assigned = await req('POST', `/api/v1/ideas/${idea.id}/status`, {
+      ...staff, key: randomUUID(),
+      body: { toStatus: 'UNDER_REVIEW', takeOwnership: true, expectedVersion: idea.version },
+    });
+    assert.equal(assigned.status, 200);
+    const assignedVersion = (await assigned.json()).data.version;
+    assert.equal((await ownedRow()).assigneeDisplayName, staff.user.displayName);
+    const internalMarker = 'PRIVATE_MINE_RESPONSIBILITY_MARKER';
+    const note = await req('POST', `/api/v1/ideas/${idea.id}/comments`, {
+      ...staff, key: randomUUID(),
+      body: { visibility: 'INTERNAL', body: internalMarker, expectedVersion: assignedVersion },
+    });
+    assert.equal(note.status, 201);
+    assert.ok(!JSON.stringify(await ownedRow()).includes(internalMarker));
+
+    const rerouted = await req('POST', `/api/v1/admin/ideas/${idea.id}/reroute`, {
+      ...admin, key: randomUUID(),
+      body: { organizationId: triageOrgId, effectiveCategoryCode: 'OTHER',
+        reason: 'Направление уточнено; передаём в центр разбора инициатив.',
+        expectedVersion: (await note.json()).data.ideaVersion },
+    });
+    assert.equal(rerouted.status, 200);
+    const moved = await ownedRow();
+    assert.equal(moved.organizationCode, 'DEMO_TRIAGE');
+    assert.equal(moved.assigneeDisplayName, null);
+
+    const deniedList = await req('GET', `/api/v1/ideas?scope=mine&q=${encodeURIComponent(idea.publicNumber)}`, outsider);
+    assert.equal(deniedList.status, 200);
+    const denied = await deniedList.json();
+    assert.equal(denied.meta.total, 0);
+    assert.deepEqual(denied.data, []);
+    assert.equal((await req('GET', `/api/v1/ideas/${idea.id}`, outsider)).status, 404);
+  });
 });

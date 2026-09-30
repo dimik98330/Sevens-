@@ -2742,5 +2742,157 @@
   "Сначала отправьте идею на рассмотрение": {
     "en": "Submit the idea for review first",
     "kk": "Алдымен идеяны қарауға жіберіңіз"
+  },
+  "Вы, автор идеи": {
+    "en": "You, the idea author",
+    "kk": "Сіз, идея авторы"
+  },
+  "Появится после отправки": {
+    "en": "Available after submission",
+    "kk": "Жібергеннен кейін пайда болады"
+  },
+  "Направление пока не указано": {
+    "en": "Review team not specified yet",
+    "kk": "Қарау бағыты әлі көрсетілмеген"
+  },
+  "Открыть карточку": {
+    "en": "Open idea details",
+    "kk": "Идея карточкасын ашу"
+  },
+  "Специалист не назначен": {
+    "en": "No specialist assigned",
+    "kk": "Маман тағайындалмаған"
+  },
+  "Здесь видно, кто рассматривает идею и какой шаг нужен дальше. Откройте карточку, чтобы назначить специалиста или ответить жителю.": {
+    "en": "See who is reviewing each idea and what needs to happen next. Open the details to assign a specialist or reply to the resident.",
+    "kk": "Мұнда идеяны кім қарап жатқаны және келесі қадам көрсетіледі. Маман тағайындау немесе тұрғынға жауап беру үшін карточканы ашыңыз."
+  },
+  "Ответственный и следующий шаг": {
+    "en": "Responsible person and next step",
+    "kk": "Жауапты маман және келесі қадам"
+  },
+  "Ответственный специалист": {
+    "en": "Responsible specialist",
+    "kk": "Жауапты маман"
+  },
+  "Автор идеи": {
+    "en": "Idea author",
+    "kk": "Идея авторы"
+  },
+  "Автор готовит черновик. На рассмотрение он ещё не поступил.": {
+    "en": "The author is preparing a draft. It has not been submitted for review yet.",
+    "kk": "Автор жобаны дайындап жатыр. Ол әлі қарауға жіберілмеген."
+  },
+  "Сотрудник направления": {
+    "en": "Review team specialist",
+    "kk": "Бағыттың маманы"
+  },
+  "Идея отправлена. От вас сейчас действий не требуется; следите за началом рассмотрения.": {
+    "en": "Your idea has been submitted. Wait for the review to begin; no action is needed from you now.",
+    "kk": "Идея жіберілді. Қазір сізден әрекет қажет емес; қараудың басталуын бақылаңыз."
+  },
+  "Назначьте ответственного и начните рассмотрение.": {
+    "en": "Assign a responsible specialist and start reviewing the idea.",
+    "kk": "Жауапты маманды тағайындап, идеяны қарауды бастаңыз."
+  },
+  "Следить за рассмотрением": {
+    "en": "Track the review",
+    "kk": "Қарау барысын бақылау"
+  },
+  "Дождитесь ответа специалиста. Если понадобятся подробности, в карточке появится вопрос.": {
+    "en": "Wait for the specialist’s reply. If more details are needed, a question will appear in the idea details.",
+    "kk": "Маманның жауабын күтіңіз. Қосымша мәлімет қажет болса, карточкада сұрақ пайда болады."
+  },
+  "Рассмотрите предложение, запросите необходимые уточнения или сообщите следующий этап.": {
+    "en": "Review the proposal, ask for any needed details or explain the next stage.",
+    "kk": "Ұсынысты қарап, қажет мәліметтерді сұраңыз немесе келесі кезеңді түсіндіріңіз."
+  },
+  "Прочитайте вопрос специалиста и отправьте уточнение в диалоге идеи.": {
+    "en": "Read the specialist’s question and reply in the idea discussion.",
+    "kk": "Маманның сұрағын оқып, идеяның диалогында нақтылау жауабын жіберіңіз."
+  },
+  "Ожидается ответ автора на запрос уточнений. После ответа продолжите рассмотрение.": {
+    "en": "Waiting for the author to provide details. Continue the review after their reply.",
+    "kk": "Автордың нақтылау жауабы күтілуде. Жауап келгеннен кейін қарауды жалғастырыңыз."
+  },
+  "Следите за сообщениями специалиста и итогом рассмотрения. Новое предложение отправлять не нужно.": {
+    "en": "Follow the specialist’s messages and the review outcome. You do not need to submit the same proposal again.",
+    "kk": "Маманның хабарламаларын және қарау нәтижесін бақылаңыз. Ұсынысты қайта жіберудің қажеті жоқ."
+  },
+  "Продолжите работу с идеей и сообщите автору о результате.": {
+    "en": "Continue working on the idea and report the outcome to the author.",
+    "kk": "Идеямен жұмысты жалғастырып, нәтижесін авторға хабарлаңыз."
+  },
+  "Посмотреть ход работы": {
+    "en": "View progress",
+    "kk": "Жұмыс барысын көру"
+  },
+  "Прочитайте итог рассмотрения и ответ специалиста.": {
+    "en": "Read the review outcome and the specialist’s reply.",
+    "kk": "Қарау нәтижесін және маманның жауабын оқыңыз."
+  },
+  "Рассмотрение завершено. Итоговый ответ и история доступны в карточке.": {
+    "en": "The review is complete. The final reply and history are available in the idea details.",
+    "kk": "Қарау аяқталды. Қорытынды жауап пен тарих карточкада қолжетімді."
+  },
+  "Прочитать итог": {
+    "en": "Read the outcome",
+    "kk": "Нәтижені оқу"
+  },
+  "Прочитайте причину отклонения и ответ специалиста.": {
+    "en": "Read the reason for rejection and the specialist’s reply.",
+    "kk": "Қабылдамау себебін және маманның жауабын оқыңыз."
+  },
+  "Рассмотрение завершено. Причина отклонения и история доступны в карточке.": {
+    "en": "The review is complete. The reason for rejection and history are available in the idea details.",
+    "kk": "Қарау аяқталды. Қабылдамау себебі мен тарих карточкада қолжетімді."
+  },
+  "Прочитать причину": {
+    "en": "Read the reason",
+    "kk": "Себебін оқу"
+  },
+  "Кто действует сейчас": {
+    "en": "Who needs to act now",
+    "kk": "Қазір кім әрекет етеді"
+  },
+  "Куда направлена": {
+    "en": "Review destination",
+    "kk": "Қайда жіберілді"
+  },
+  "Ответственный сотрудник": {
+    "en": "Responsible staff member",
+    "kk": "Жауапты қызметкер"
+  },
+  "Краткий обзор идеи «{0}»": {
+    "en": "Summary of idea “{0}”",
+    "kk": "«{0}» идеясының қысқаша шолуы"
+  },
+  "Запрошен ответ жителя": {
+    "en": "The resident was asked for details",
+    "kk": "Тұрғыннан нақтылау сұралды"
+  },
+  "Объяснение направления пока не указано.": {
+    "en": "The routing explanation is not available yet.",
+    "kk": "Бағыттың түсіндірмесі әлі көрсетілмеген."
+  },
+  "Итог рассмотрения": {
+    "en": "Review outcome",
+    "kk": "Қарау нәтижесі"
+  },
+  "Вопрос специалиста": {
+    "en": "Specialist’s question",
+    "kk": "Маманның сұрағы"
+  },
+  "Запрос уточнений": {
+    "en": "Clarification request",
+    "kk": "Нақтылау сұрауы"
+  },
+  "Откройте идею, чтобы прочитать запрос уточнений и ответить.": {
+    "en": "Open the idea to read the clarification request and reply.",
+    "kk": "Нақтылау сұрауын оқып, жауап беру үшін идеяны ашыңыз."
+  },
+  "Откройте полную карточку, чтобы прочитать итог рассмотрения.": {
+    "en": "Open the full details to read the review outcome.",
+    "kk": "Қарау нәтижесін оқу үшін толық карточканы ашыңыз."
   }
 }

@@ -672,6 +672,8 @@ export function createHandler(db, config = appConfig()) {
             `SELECT id, public_number AS "publicNumber", title, status,
                     location_geometry AS "locationGeometry",
                     (SELECT t.name_ru FROM territories t WHERE t.id=ideas.territory_id) AS "territoryName",
+                    (SELECT o.code FROM organizations o WHERE o.id=ideas.organization_id) AS "organizationCode",
+                    (SELECT u.display_name FROM users u WHERE u.id=ideas.assignee_id) AS "assigneeDisplayName",
                     effective_category_code AS "effectiveCategoryCode",
                     submitted_at AS "submittedAt", created_at AS "createdAt",
                     updated_at AS "updatedAt", version
