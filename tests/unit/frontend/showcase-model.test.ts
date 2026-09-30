@@ -13,6 +13,12 @@ describe("public showcase navigation", () => {
   it("discards private draft status, territory codes, invalid enums and unsafe pages", () => {
     expect(parseShowcaseFilters(new URLSearchParams("category=secret&territory=DEMO_SEMEY&status=DRAFT&sort=sql&page=-1"))).toMatchObject({ category: "", territoryId: "", status: "", sort: "popular", page: 1 });
   });
+  it("explicitly requests popular sorting from the API while keeping the default list URL short", () => {
+    const filters = parseShowcaseFilters(new URLSearchParams());
+    expect(filters.sort).toBe("popular");
+    expect(new URLSearchParams(showcaseQuery(filters, true)).get("sort")).toBe("popular");
+    expect(showcaseQuery(filters)).toBe("");
+  });
   it("only returns to the local public list and canonicalizes its filters", () => {
     expect(safeDashboardBack("https://attacker.test")).toBe("/dashboard");
     expect(safeDashboardBack("//attacker.test/dashboard")).toBe("/dashboard");

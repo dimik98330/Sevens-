@@ -13,6 +13,7 @@ import { useSession } from "@/features/shared/session";
 import { showcaseApi } from "@/features/showcase/api";
 import { useShowcaseMessages } from "@/features/showcase/messages";
 import { publicStages } from "@/features/showcase/model";
+import { ShowcaseIllustration } from "./ShowcaseIllustration";
 
 const CATEGORY_ICONS: Record<CategoryCode, IconName> = { TRANSPORT: "bus", UTILITIES: "home", EDUCATION: "bulb", ECOLOGY: "leaf", SAFETY: "shield", HEALTH: "plus", TOURISM: "globe", ACCESSIBILITY: "users", OTHER: "layers" };
 
@@ -103,9 +104,9 @@ export function PublicIdeaCard({ idea, listUrl, onChanged }: { idea: PublicIdea;
   const { m, ui } = useShowcaseMessages();
   const detailUrl = `/dashboard/${encodeURIComponent(idea.id)}?returnTo=${encodeURIComponent(listUrl)}`;
   return <article className="showcase-card" data-category={idea.categoryCode}>
-    <div className="showcase-card-heading"><div className="showcase-card-category"><ShowcaseSymbol category={idea.categoryCode} /><span>{ui.categories[idea.categoryCode]}</span></div><StatusBadge status={idea.status} /></div>
-    <div className="showcase-card-body"><p className="showcase-number">{idea.publicNumber}</p><h2><Link href={detailUrl}>{idea.title}</Link></h2><p className="showcase-card-solution">{idea.solution}</p><p className="showcase-card-territory"><Icon name="pin" size={14} />{idea.territoryName || m.region}</p><ShowcaseStages idea={idea} /></div>
-    {idea.latestReply && <div className="showcase-card-reply"><Icon name="mail" size={16} /><span>{m.reply}</span><Icon name="check" size={13} /></div>}
+    <div className="showcase-card-cover"><ShowcaseIllustration category={idea.categoryCode} /><div className="showcase-card-heading"><div className="showcase-card-category"><Icon name={CATEGORY_ICONS[idea.categoryCode] || "bulb"} size={17} /><span>{ui.categories[idea.categoryCode]}</span></div><StatusBadge status={idea.status} /></div></div>
+    <div className="showcase-card-body"><div className="showcase-card-meta"><p className="showcase-number">{idea.publicNumber}</p><span><ShowcaseDate value={idea.publishedAt} /></span></div><h2><Link href={detailUrl}>{idea.title}</Link></h2><p className="showcase-card-solution">{idea.solution}</p><p className="showcase-card-territory"><Icon name="pin" size={17} />{idea.territoryName || m.region}</p><ShowcaseStages idea={idea} /></div>
+    {idea.latestReply && <div className="showcase-card-reply"><div><Icon name="mail" size={17} /><span>{m.reply}</span><Icon name="check" size={15} /></div><p>{idea.latestReply.body}</p></div>}
     <footer className="showcase-card-footer"><ShowcaseActions idea={idea} onChanged={onChanged} returnTo={detailUrl} /><Link href={detailUrl} className="showcase-read"><span>{m.read}</span><Icon name="arrow" size={18} /></Link></footer>
   </article>;
 }

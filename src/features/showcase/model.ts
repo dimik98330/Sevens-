@@ -29,7 +29,7 @@ export function showcaseQuery(filters: ShowcaseFilters, forApi = false): string 
   const params = new URLSearchParams();
   for (const key of ["q", "category", "status"] as const) if (filters[key]) params.set(key, filters[key]);
   if (filters.territoryId) params.set("territory", filters.territoryId);
-  if (filters.sort !== "popular") params.set("sort", filters.sort);
+  if (forApi || filters.sort !== "popular") params.set("sort", filters.sort);
   if (filters.following) params.set("following", "true");
   if (filters.page > 1) params.set("page", String(filters.page));
   if (forApi) params.set("pageSize", "9");
